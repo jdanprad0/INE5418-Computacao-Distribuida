@@ -19,7 +19,7 @@ private:
     int udp_port;                                                       ///< Porta UDP para descoberta de arquivos.
     int tcp_port;                                                       ///< Porta TCP para transferência de chunks.
     int transfer_speed;                                                 ///< Capacidade de transferência em bytes/s.
-    std::vector<std::tuple<int, std::string, int, int>> neighbor_info;  ///< Informações sobre sua vizinhança.
+    std::vector<std::tuple<std::string, int>> neighbors;                ///< Informações sobre sua vizinhança.
     FileManager fileManager;                                            ///< Gerenciador de arquivos do peer.
     UDPServer udpServer;                                                ///< Servidor UDP para descoberta de arquivos.
     TCPServer tcpServer;                                                ///< Servidor TCP para transferência de chunks.
@@ -36,7 +36,7 @@ public:
      */
     Peer(int id, const std::string& ip, int udp_port, 
      int tcp_port, int transfer_speed, 
-     std::vector<std::tuple<int, std::string, int, int>> neighbor_info);
+     std::vector<std::tuple<std::string, int>> neighbors);
 
     /**
      * @brief // Método que configura informações para conexões UDP

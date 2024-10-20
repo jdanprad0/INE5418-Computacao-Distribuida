@@ -12,17 +12,17 @@ class ConfigManager {
 public:
     /**
      * @brief Carrega a topologia da rede a partir do arquivo.
-     * @param file_path Caminho do arquivo topologia.txt.
+     * @param file_name Nome do arquivo que está a topologia (Ex.: topologia.txt).
      * @return Mapa com a topologia (vizinhos de cada nodo).
      */
-    static std::map<int, std::vector<int>> loadTopology(const std::string& file_path);
+    static std::map<int, std::vector<int>> loadTopology(const std::string& file_name);
 
     /**
      * @brief Carrega as configurações dos peers a partir do arquivo.
-     * @param file_path Caminho do arquivo config.txt.
+     * @param file_name Nome do arquivo que está a configuração (Ex.: config.txt).
      * @return Mapa com as configurações de cada peer.
      */
-    static std::map<int, std::tuple<std::string, int, int>> loadConfig(const std::string& file_path);
+    static std::map<int, std::tuple<std::string, int, int>> loadConfig(const std::string& file_name);
 
     
     /**
@@ -32,7 +32,7 @@ public:
      * @param config Mapa de configuração dos peers (IP, porta, velocidade).
      * @return std::map<int, std::vector<std::tuple<int, std::string, int, int>>> Topologia detalhada com as informações dos nodos.
      */
-    static std::map<int, std::vector<std::tuple<int, std::string, int, int>>> expandTopology(
+    static std::map<int, std::vector<std::tuple<std::string, int>>> expandTopology(
         const std::map<int, std::vector<int>>& topology, 
         const std::map<int, std::tuple<std::string, int, int>>& config
     );

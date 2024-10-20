@@ -6,8 +6,8 @@
 /**
  * @brief Construtor da classe Peer.
  */
-Peer::Peer(int id, const std::string& ip, int udp_port, int tcp_port, int transfer_speed, std::vector<std::tuple<int, std::string, int, int>> neighbor_info)
-    : id(id), ip(ip), udp_port(udp_port), tcp_port(tcp_port), transfer_speed(transfer_speed), neighbor_info(neighbor_info),
+Peer::Peer(int id, const std::string& ip, int udp_port, int tcp_port, int transfer_speed, std::vector<std::tuple<std::string, int>> neighbors)
+    : id(id), ip(ip), udp_port(udp_port), tcp_port(tcp_port), transfer_speed(transfer_speed), neighbors(neighbors),
       fileManager(std::to_string(id)), udpServer(ip, udp_port, id, fileManager),
       tcpServer(ip, tcp_port, transfer_speed, fileManager) {
     // Carrega os chunks locais na inicialização
@@ -19,11 +19,11 @@ Peer::Peer(int id, const std::string& ip, int udp_port, int tcp_port, int transf
  * @brief Carrega a topologia da rede.
  */
 void Peer::loadUDPConnections() {
-    udpServer.setConnections(neighbor_info);
+    udpServer.setUDPNeighbors(neighbors);
     
     // Exibe as informações dos vizinhos para depuração
-    for (const auto& [id, ip, port, speed] : neighbor_info) {
-        std::cout << "Vizinho ID: " << id << ", IP: " << ip << ", Porta: " << port << ", Velocidade: " << speed << std::endl;
+    for (const auto& [ip, port] : neighbors) {
+        std::cout << "Vizinho IP: " << ip << ", Porta: " << port << "" << std::endl;
     }
 }
 
@@ -35,11 +35,11 @@ void Peer::start() {
     std::thread udp_thread(&UDPServer::run, &udpServer);
 
     // Inicia o servidor TCP em uma thread separada
-    std::thread tcp_thread(&TCPServer::run, &tcpServer);
+    //std::thread tcp_thread(&TCPServer::run, &tcpServer);
 
     // Espera as threads
     udp_thread.join();
-    tcp_thread.join();
+    //tcp_thread.join();
 }
 
 /**
@@ -63,5 +63,5 @@ void Peer::searchFile(const std::string& metadata_file) {
     meta_file.close();
 
     // Inicia o processo de descoberta do arquivo
-    udpServer.initiateDiscovery(file_name, total_chunks, initial_ttl);
+    udpServer.initiateDiscovery(file_name, total_chunks, initial_ttl, ip, ip, udp_port);
 }

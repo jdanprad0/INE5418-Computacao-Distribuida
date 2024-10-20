@@ -6,7 +6,8 @@
 /**
  * @brief Carrega a topologia da rede a partir do arquivo.
  */
-std::map<int, std::vector<int>> ConfigManager::loadTopology(const std::string& file_path) {
+std::map<int, std::vector<int>> ConfigManager::loadTopology(const std::string& file_name) {
+    std::string file_path = "./src/" + file_name;
     std::ifstream file(file_path);
     std::map<int, std::vector<int>> topology;
 
@@ -43,7 +44,8 @@ std::map<int, std::vector<int>> ConfigManager::loadTopology(const std::string& f
 /**
  * @brief Carrega as configurações dos peers a partir do arquivo.
  */
-std::map<int, std::tuple<std::string, int, int>> ConfigManager::loadConfig(const std::string& file_path) {
+std::map<int, std::tuple<std::string, int, int>> ConfigManager::loadConfig(const std::string& file_name) {
+    std::string file_path = "./src/" + file_name;
     std::ifstream file(file_path);
     std::map<int, std::tuple<std::string, int, int>> config;
 
@@ -56,13 +58,21 @@ std::map<int, std::tuple<std::string, int, int>> ConfigManager::loadConfig(const
     while (std::getline(file, line)) {
         std::stringstream ss(line);
         int node_id;
-        char colon, comma1, comma2;
+        char colon, comma2;
         std::string ip;
         int udp_port;
         int speed;
 
-        ss >> node_id >> colon >> ip >> comma1 >> udp_port >> comma2 >> speed;
+        // Primeiro captura o node_id e o colon (:)
+        ss >> node_id >> colon;
 
+        // Depois captura o IP, usando std::getline para ignorar a vírgula após o IP
+        std::getline(ss, ip, ',');
+
+        // Captura o restante dos campos (udp_port e speed)
+        ss >> udp_port >> comma2 >> speed;
+
+        // Armazena os dados no mapa
         config[node_id] = std::make_tuple(ip, udp_port, speed);
     }
 
@@ -73,24 +83,33 @@ std::map<int, std::tuple<std::string, int, int>> ConfigManager::loadConfig(const
 /**
  * @brief Expande a topologia com as informações detalhadas da configuração dos peers.
  */
-std::map<int, std::vector<std::tuple<int, std::string, int, int>>> ConfigManager::expandTopology(
+std::map<int, std::vector<std::tuple<std::string, int>>> ConfigManager::expandTopology(
     const std::map<int, std::vector<int>>& topology, 
     const std::map<int, std::tuple<std::string, int, int>>& config) 
 {
-    std::map<int, std::vector<std::tuple<int, std::string, int, int>>> expanded_topology;
-
+    // Mapa que armazenará a topologia expandida com apenas IP e porta
+    std::map<int, std::vector<std::tuple<std::string, int>>> expanded_topology;
+    
+    // Itera sobre cada nó e seus vizinhos na topologia
     for (const auto& [node_id, neighbors] : topology) {
-        std::vector<std::tuple<int, std::string, int, int>> detailed_neighbors;
+        // Vetor que armazenará os detalhes dos vizinhos (IP, porta)
+        std::vector<std::tuple<std::string, int>> detailed_neighbors;
 
+        // Itera sobre os vizinhos deste nó
         for (const int& neighbor_id : neighbors) {
+            // Verifica se o vizinho existe na configuração
             if (config.find(neighbor_id) != config.end()) {
-                auto [neighbor_ip, neighbor_port, neighbor_speed] = config.at(neighbor_id);
-                detailed_neighbors.emplace_back(neighbor_id, neighbor_ip, neighbor_port, neighbor_speed);
+                // Extrai o IP e a porta do vizinho a partir da configuração
+                auto [neighbor_ip, neighbor_port, _] = config.at(neighbor_id);
+
+                // Adiciona os detalhes do vizinho (IP, porta) ao vetor
+                detailed_neighbors.emplace_back(neighbor_ip, neighbor_port);
             }
         }
-
+        // Associa a lista de vizinhos detalhados a este nó na topologia expandida
         expanded_topology[node_id] = detailed_neighbors;
     }
 
+    // Retorna a topologia expandida com IP e porta
     return expanded_topology;
 }

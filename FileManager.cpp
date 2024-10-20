@@ -7,7 +7,7 @@
  * @brief Construtor da classe FileManager.
  */
 FileManager::FileManager(const std::string& peer_id) : peer_id(peer_id) {
-    directory = "./" + peer_id;
+    directory = "./src/" + peer_id;
 }
 
 /**
@@ -64,6 +64,21 @@ void FileManager::saveChunk(const std::string& file_name, int chunk, const char*
  */
 bool FileManager::hasAllChunks(const std::string& file_name, int total_chunks) {
     return local_chunks[file_name].size() == static_cast<size_t>(total_chunks);
+}
+
+/**
+ * @brief Retorna os chunks disponíveis para um arquivo específico.
+ */
+std::vector<int> FileManager::getAvailableChunks(const std::string& file_name) {
+    std::vector<int> available_chunks;
+
+    // Verifica se o arquivo está no mapa de chunks locais
+    if (local_chunks.find(file_name) != local_chunks.end()) {
+        // Copia os chunks disponíveis para o vetor
+        available_chunks.assign(local_chunks[file_name].begin(), local_chunks[file_name].end());
+    }
+
+    return available_chunks;
 }
 
 /**

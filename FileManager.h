@@ -59,6 +59,13 @@ public:
      * @return true se todos os chunks foram recebidos, false caso contrário.
      */
     bool hasAllChunks(const std::string& file_name, int total_chunks);
+    
+    /**
+     * @brief Retorna os chunks disponíveis para um arquivo específico.
+     * @param file_name Nome do arquivo.
+     * @return Vetor contendo os chunks disponíveis localmente.
+     */
+    std::vector<int> getAvailableChunks(const std::string& file_name);
 
     /**
      * @brief Concatena todos os chunks para formar o arquivo completo.
