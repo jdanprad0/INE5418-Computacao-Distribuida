@@ -89,7 +89,7 @@ void UDPServer::processMessage(const std::string& message, const std::string& di
     } else if (command == "RESPONSE") {
         processResponseMessage(ss, direct_sender_ip, direct_sender_port);
     } else {
-        std::cout << "Comando desconhecido recebido: " << command << std::endl;
+        std::cout << "Comando desconhecido recebido: " << command << "\n" << std::endl;
     }
 }
 
@@ -105,7 +105,7 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const std::s
 
     std::cout << "Eu, Peer " << ip << " recebi pedido de descoberta do arquivo " << file_name
               << " com TTL " << ttl << " do Peer " << direct_sender_ip
-              << ". A resposta deve ser feita para: " << original_sender_ip << std::endl;
+              << ". A resposta deve ser feita para o Peer " << original_sender_ip << "\n" << std::endl;
 
     // Verifica se possui algum chunk do arquivo
     bool response = sendChunkResponse(file_name, original_sender_ip, original_sender_UDP_port);
@@ -134,14 +134,14 @@ void UDPServer::processResponseMessage(std::stringstream& ss, const std::string&
     }
 
     // Exibe os chunks recebidos na mensagem de resposta
-    std::cout << "Recebi a resposta do Peer " << direct_sender_ip << " de sua porta UDP: " << direct_sender_port << " para o arquivo " << file_name
+    std::cout << "Eu, Peer " << ip << "Recebi a resposta do Peer " << direct_sender_ip << " de sua porta UDP " << direct_sender_port << " para o arquivo " << file_name
               << ". Chunks disponíveis: ";
 
     for (const int& chunk : chunks_received) {
         std::cout << chunk << " ";
     }
 
-    std::cout << std::endl;
+    std::cout << "\n" << std::endl;
 }
 
 bool UDPServer::sendChunkResponse(const std::string& file_name, const std::string& requester_ip, int requester_UDP_port) {
@@ -175,11 +175,11 @@ bool UDPServer::sendChunkResponse(const std::string& file_name, const std::strin
                 std::cout << chunk << " ";
             }
 
-            std::cout << std::endl;
+            std::cout << "\n" << std::endl;
             return true;
         }
     } else {
-        std::cout << "Eu, Peer " << ip << " não possuo chunks do arquivo " << file_name << "." << std::endl;
+        std::cout << "Eu, Peer " << ip << " não possuo chunks do arquivo " << file_name << "\n" << std::endl;
         return false;
     }
 }
@@ -233,7 +233,7 @@ void UDPServer::sendDiscoveryMessage(const std::string& message, std::string dir
             if (bytes_sent < 0) {
                 perror("Erro ao enviar mensagem UDP");
             } else {
-                std::cout << "Peer " << peer_id << " enviou mensagem para Peer de IP: " << neighbor_ip << std::endl;
+                std::cout << "Eu, Peer " << peer_id << " enviei uma mensagem para o Peer " << neighbor_ip << "\n" << std::endl;
             }
         }
     }

@@ -2,7 +2,7 @@
 .vscode/
 
 # Ignora a pasta build
-build/
+.build/
 
 # Ignora o executável gerado
 p2p

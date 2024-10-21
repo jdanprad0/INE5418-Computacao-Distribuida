@@ -102,5 +102,5 @@ void FileManager::assembleFile(const std::string& file_name, int total_chunks) {
     }
 
     output_file.close();
-    std::cout << "Arquivo " << file_name << " montado com sucesso!" << std::endl;
+    std::cout << "Arquivo " << file_name << " montado com sucesso!" << "\n" << std::endl;
 }

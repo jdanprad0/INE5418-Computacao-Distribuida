@@ -60,7 +60,7 @@ void TCPServer::transferChunk(int client_sock) {
     ssize_t bytes_received = recv(client_sock, request_buffer, sizeof(request_buffer), 0);
     if (bytes_received <= 0) {
         if (bytes_received == 0) {
-            std::cout << "Conexão fechada pelo cliente." << std::endl;
+            std::cout << "Conexão fechada pelo cliente." << "\n" << std::endl;
         } else {
             perror("Erro ao receber dados via TCP");
         }
