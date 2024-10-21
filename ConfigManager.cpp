@@ -1,4 +1,5 @@
 #include "ConfigManager.h"
+#include "Utils.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -68,6 +69,9 @@ std::map<int, std::tuple<std::string, int, int>> ConfigManager::loadConfig(const
 
         // Depois captura o IP, usando std::getline para ignorar a vírgula após o IP
         std::getline(ss, ip, ',');
+
+         // Remove espaços em branco do IP
+        ip = trim(ip);
 
         // Captura o restante dos campos (udp_port e speed)
         ss >> udp_port >> comma2 >> speed;

@@ -12,19 +12,7 @@ Peer::Peer(int id, const std::string& ip, int udp_port, int tcp_port, int transf
       tcpServer(ip, tcp_port, transfer_speed, fileManager) {
     // Carrega os chunks locais na inicialização
     fileManager.loadLocalChunks();
-    loadUDPConnections();
-}
-
-/**
- * @brief Carrega a topologia da rede.
- */
-void Peer::loadUDPConnections() {
     udpServer.setUDPNeighbors(neighbors);
-    
-    // Exibe as informações dos vizinhos para depuração
-    for (const auto& [ip, port] : neighbors) {
-        std::cout << "Vizinho IP: " << ip << ", Porta: " << port << "" << std::endl;
-    }
 }
 
 /**
@@ -47,7 +35,8 @@ void Peer::start() {
  */
 void Peer::searchFile(const std::string& metadata_file) {
     // Lê o arquivo de metadados
-    std::ifstream meta_file(metadata_file);
+    std::string file_path = "./src/" + metadata_file;
+    std::ifstream meta_file(file_path);
     if (!meta_file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo de metadados." << std::endl;
         return;
@@ -58,6 +47,7 @@ void Peer::searchFile(const std::string& metadata_file) {
     int initial_ttl;
 
     std::getline(meta_file, file_name);
+    
     meta_file >> total_chunks;
     meta_file >> initial_ttl;
     meta_file.close();

@@ -5,13 +5,13 @@ CXX = g++
 CXXFLAGS = -std=c++17 -Wall -g
 
 # Pasta para armazenar arquivos .o
-OBJDIR = build
+OBJDIR = .build
 
 # Arquivos de origem
-SRC = ConfigManager.cpp FileManager.cpp Peer.cpp TCPServer.cpp UDPServer.cpp main.cpp
+SRC = Utils.cpp ConfigManager.cpp FileManager.cpp Peer.cpp TCPServer.cpp UDPServer.cpp main.cpp
 
 # Arquivos de cabeçalho
-HEADERS = ConfigManager.h FileManager.h Peer.h TCPServer.h UDPServer.h
+HEADERS = Utils.h ConfigManager.h FileManager.h Peer.h TCPServer.h UDPServer.h
 
 # Nome do executável
 TARGET = p2p

@@ -39,11 +39,6 @@ public:
      std::vector<std::tuple<std::string, int>> neighbors);
 
     /**
-     * @brief // Método que configura informações para conexões UDP
-     */
-    void loadUDPConnections();
-
-    /**
      * @brief Inicia os servidores UDP e TCP.
      */
     void start();

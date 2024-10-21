@@ -189,7 +189,7 @@ bool UDPServer::sendChunkResponse(const std::string& file_name, const std::strin
  */
 std::string UDPServer::buildDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, std::string original_sender_ip, int original_sender_UDP_port) const {
     std::stringstream ss;
-    ss << "DISCOVERY " << file_name << " " << total_chunks << " " << ttl << " " << original_sender_ip << original_sender_UDP_port;
+    ss << "DISCOVERY " << file_name << " " << total_chunks << " " << ttl << " " << original_sender_ip << " " << original_sender_UDP_port;
     return ss.str();
 }
 

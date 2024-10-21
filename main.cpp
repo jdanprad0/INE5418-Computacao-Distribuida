@@ -34,8 +34,8 @@ int main(int argc, char* argv[]) {
     std::thread peer_thread(&Peer::start, &peer);
 
     // Simula a entrada de um arquivo de metadados para buscar
-    //std::this_thread::sleep_for(std::chrono::seconds(2)); // Aguarda a inicialização
-    //peer.searchFile("arquivo.p2p");
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // Aguarda a inicialização
+    peer.searchFile("image.png.p2p");
 
     peer_thread.join();
 
