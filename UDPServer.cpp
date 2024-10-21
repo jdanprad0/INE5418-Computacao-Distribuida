@@ -17,8 +17,8 @@
  * Inicializa o servidor UDP, criando o socket e vinculando-o à porta especificada.
  * Em caso de erro, o programa é encerrado.
  */
-UDPServer::UDPServer(const std::string& ip, int port, int peer_id, FileManager& fileManager)
-    : ip(ip), port(port), peer_id(peer_id), fileManager(fileManager) {
+UDPServer::UDPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager)
+    : ip(ip), port(port), peer_id(peer_id), transfer_speed(transfer_speed), file_manager(file_manager) {
     
     // Criação do socket UDP
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -38,7 +38,7 @@ UDPServer::UDPServer(const std::string& ip, int port, int peer_id, FileManager& 
         perror("Erro ao fazer bind no socket UDP");
     }
 
-    logMessage("INFO", "Servidor UDP inicializado em " + ip + ":" + std::to_string(port));
+    logMessage(LogType::INFO, "Servidor UDP inicializado em " + ip + ":" + std::to_string(port));
 }
 
 /**
@@ -53,7 +53,7 @@ void UDPServer::setUDPNeighbors(const std::vector<std::tuple<std::string, int>>&
 
         udpNeighbors.emplace_back(neighbor_ip, neighbor_port);
     }
-    logMessage("INFO", "Vizinhos configurados para o servidor UDP.");
+    logMessage(LogType::INFO, "Vizinhos configurados para o servidor UDP.");
 }
 
 /**
@@ -67,7 +67,7 @@ void UDPServer::run() {
     struct sockaddr_in sender_addr{};
     socklen_t addr_len = sizeof(sender_addr);
 
-    logMessage("INFO", "Servidor UDP em execução... Aguardando mensagens...");
+    logMessage(LogType::INFO, "Servidor UDP em execução... Aguardando mensagens...");
 
     while (true) {
         // Recebe a mensagem UDP
@@ -100,15 +100,23 @@ void UDPServer::run() {
  */
 void UDPServer::processMessage(const std::string& message, const PeerInfo& direct_sender_info) {
     std::stringstream ss(message);
-    std::string command;
-    ss >> command;
+    std::string command, file_name;
+    ss >> command >> file_name;
 
     if (command == "DISCOVERY") {
-        processDiscoveryMessage(ss, direct_sender_info);
+         processDiscoveryMessage(ss, direct_sender_info);
     } else if (command == "RESPONSE") {
+        {
+            std::lock_guard<std::mutex> lock(processing_mutex);
+            if (processing_active_map[file_name]) {
+                processResponseMessage(ss, direct_sender_info);
+            } else {
+                logMessage(LogType::OTHER, "Mensagem RESPONSE recebida para " + file_name + ", mas o processamento está desativado.");
+            }
+        }
         processResponseMessage(ss, direct_sender_info);
     } else {
-        logMessage("ERROR", "Comando desconhecido recebido: " + command);
+        logMessage(LogType::ERROR, "Comando desconhecido recebido: " + command);
     }
 }
 
@@ -133,7 +141,7 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerIn
 
     // Só manda mensagem de descoberta de mensagens que não foi o próprio peer que enviou
     if (chunk_requester_ip != ip) {
-        logMessage("DISCOVERY_RECEIVED",
+        logMessage(LogType::DISCOVERY_RECEIVED,
                 "Recebido pedido de descoberta do arquivo '" + file_name + "' com TTL " + std::to_string(ttl) +
                 " do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
                 ". Resposta será enviada para o Peer " + chunk_requester_ip + ":" + std::to_string(chunk_requester_port));
@@ -159,10 +167,11 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerIn
  */
 void UDPServer::processResponseMessage(std::stringstream& message, const PeerInfo& direct_sender_info) {
     std::string file_name;
+    int transfer_speed;
     std::vector<int> chunks_received;
 
     // Extrai o nome do arquivo e os chunks disponíveis
-    message >> file_name;
+    message >> file_name >> transfer_speed;
     int chunk;
     while (message >> chunk) {
         chunks_received.push_back(chunk);
@@ -173,7 +182,10 @@ void UDPServer::processResponseMessage(std::stringstream& message, const PeerInf
         chunks_ss << chunk << " ";
     }
 
-    logMessage("RESPONSE",
+    // Armazena as respostas recebidas no mapa
+    file_manager.storeChunkResponses(file_name, chunks_received, direct_sender_info.ip, direct_sender_info.port, transfer_speed);
+
+    logMessage(LogType::RESPONSE,
                "Recebida resposta do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
                " para o arquivo '" + file_name + "'. Chunks disponíveis: " + chunks_ss.str());
 }
@@ -183,6 +195,7 @@ void UDPServer::processResponseMessage(std::stringstream& message, const PeerInf
  */
 void UDPServer::sendDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) {
     std::string message = buildDiscoveryMessage(file_name, total_chunks, ttl, chunk_requester_info);
+    bool send_message = false;
 
     for (const auto& [neighbor_ip, neighbor_port] : udpNeighbors) {
         struct sockaddr_in neighbor_addr;
@@ -199,10 +212,21 @@ void UDPServer::sendDiscoveryMessage(const std::string& file_name, int total_chu
         if (bytes_sent < 0) {
             perror("Erro ao enviar mensagem UDP");
         } else {
-            logMessage("DISCOVERY_SENT",
+            logMessage(LogType::DISCOVERY_SENT,
                        "Mensagem de descoberta enviada para Peer " + neighbor_ip + ":" + std::to_string(neighbor_port) +
                        " -> " + message);
+            send_message = true;
         }
+    }
+    
+    // Inicia o timer em uma thread separada para o arquivo
+    if (send_message){
+        {
+            std::lock_guard<std::mutex> lock(processing_mutex);
+            processing_active_map[file_name] = true; // Marca como ativo antes de iniciar o timer
+        }
+        std::thread timer_thread(&UDPServer::startTimer, this, file_name);
+        timer_thread.detach(); // Desanexa a thread para que continue executando
     }
 }
 
@@ -212,7 +236,7 @@ void UDPServer::sendDiscoveryMessage(const std::string& file_name, int total_chu
  * Verifica se o peer possui chunks do arquivo solicitado e envia uma mensagem de resposta.
  */
 bool UDPServer::sendChunkResponse(const std::string& file_name, const PeerInfo& chunk_requester_info) {
-    std::vector<int> chunks_available = fileManager.getAvailableChunks(file_name);
+    std::vector<int> chunks_available = file_manager.getAvailableChunks(file_name);
 
     if (!chunks_available.empty()) {
         std::string response_message = buildChunkResponseMessage(file_name, chunks_available);
@@ -238,13 +262,13 @@ bool UDPServer::sendChunkResponse(const std::string& file_name, const PeerInfo& 
             chunks_ss << chunk << " ";
         }
 
-        logMessage("INFO",
+        logMessage(LogType::INFO,
                    "Enviada resposta para o Peer " + chunk_requester_info.ip + ":" + std::to_string(chunk_requester_info.port) +
                    " com chunks disponíveis do arquivo '" + file_name + "': " + chunks_ss.str());
         return true;
     }
 
-    logMessage("INFO", "Nenhum chunk disponível para o arquivo '" + file_name + "'");
+    logMessage(LogType::INFO, "Nenhum chunk disponível para o arquivo '" + file_name + "'");
     return false;
 }
 
@@ -262,11 +286,22 @@ std::string UDPServer::buildDiscoveryMessage(const std::string& file_name, int t
  */
 std::string UDPServer::buildChunkResponseMessage(const std::string& file_name, const std::vector<int>& chunks_available) const {
     std::stringstream ss;
-    ss << "RESPONSE " << file_name << " ";  // Inicia a mensagem com "RESPONSE" e o nome do arquivo
+    ss << "RESPONSE " << file_name << " " << transfer_speed << " ";  // Inicia a mensagem com LogType::RESPONSE e o nome do arquivo
     
     for (const int& chunk : chunks_available) {
         ss << chunk << " ";  // Adiciona o ID de cada chunk disponível
     }
 
     return ss.str();
+}
+
+void UDPServer::startTimer(const std::string& file_name) {
+    std::this_thread::sleep_for(std::chrono::seconds(RESPONSE_TIMEOUT_SECONDS)); // Espera 5 segundos
+
+    {
+        std::lock_guard<std::mutex> lock(processing_mutex);
+        processing_active_map[file_name] = false; // Desativa o processamento para o file_name
+    }
+
+    logMessage(LogType::INFO, "Processamento de mensagens RESPONSE desativado para o arquivo: " + file_name);
 }

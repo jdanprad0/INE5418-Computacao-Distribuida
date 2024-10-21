@@ -6,6 +6,8 @@
 #include <vector>
 #include <set>
 #include <tuple>
+#include <unordered_map>
+#include <mutex>
 #include "FileManager.h"
 
 /**
@@ -34,9 +36,12 @@ private:
     std::string ip;                                                     ///< Endereço IP do peer atual.
     int port;                                                           ///< Porta UDP que o peer está utilizando para a comunicação.
     int peer_id;                                                        ///< Identificador único (ID) do peer.
+    int transfer_speed;                                                 ///< Velocidade de transferência de dados.
     int sockfd;                                                         ///< Descriptor do socket UDP utilizado para a comunicação.
-    FileManager& fileManager;                                           ///< Referência ao gerenciador de arquivos (armazenamento e chunks).
+    FileManager& file_manager;                                          ///< Referência ao gerenciador de arquivos (armazenamento e chunks).
     std::vector<std::tuple<std::string, int>> udpNeighbors;             ///< Lista contendo os vizinhos diretos do peer (endereços IP e portas).
+    std::map<std::string, bool> processing_active_map;                  ///< Mapa para controlar o estado de processamento de cada arquivo. Mapeia file_name para processing_active.
+    std::mutex processing_mutex;                                        ///< Mutex para proteger o acesso ao mapa
 
 public:
     /**
@@ -49,9 +54,10 @@ public:
      * @param ip Endereço IP do peer.
      * @param port Porta UDP usada para a comunicação.
      * @param peer_id ID do peer na rede P2P.
+     * @param transfer_speed Velocidade de transferência de dados do peer na rede P2P.
      * @param file_manager Referência ao gerenciador de arquivos do peer.
      */
-    UDPServer(const std::string& ip, int port, int peer_id, FileManager& file_manager);
+    UDPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager);
 
     /**
      * @brief Define os vizinhos para o peer atual.
@@ -101,7 +107,7 @@ public:
      * 
      * Esta função é responsável por processar as respostas recebidas após um peer enviar 
      * uma solicitação de descoberta de arquivo. Ela extrai as informações do peer que 
-     * enviou a resposta e verifica se o arquivo solicitado está disponível com o peer respondente.
+     * enviou a resposta positiva a sua mensagem de descoberta.
      * 
      * @param message Stream com os dados da mensagem RESPONSE.
      * @param direct_sender_info Informações sobre o peer que enviou diretamente a mensagem, incluindo seu endereço IP e porta UDP.
@@ -157,6 +163,16 @@ public:
      * @return String contendo a mensagem RESPONSE formatada.
      */
     std::string buildChunkResponseMessage(const std::string& file_name, const std::vector<int>& chunks_available) const;
+
+    /**
+     * @brief Inicia um timer que desativa o processamento de mensagens RESPONSE após RESPONSE_TIMEOUT_SECONDS segundos.
+     * Este método aguarda 5 segundos e então altera o estado de processamento das mensagens
+     * RESPONSE para inativo, utilizando um mutex para garantir a segurança em ambientes de 
+     * múltiplas threads.
+     * @param file_name Nome do arquivo para o qual o timer está sendo iniciado.
+     */
+    void startTimer(const std::string& file_name);
+
 };
 
 #endif // UDPSERVER_H

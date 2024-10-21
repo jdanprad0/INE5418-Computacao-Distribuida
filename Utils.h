@@ -14,6 +14,18 @@
 #define BLUE    "\033[94m"
 #define CIANO   "\033[96m"
 
+#define RESPONSE_TIMEOUT_SECONDS 5
+
+// Enumeração para os tipos de mensagens de log
+enum class LogType {
+    ERROR,
+    INFO,
+    DISCOVERY_RECEIVED,
+    DISCOVERY_SENT,
+    RESPONSE,
+    OTHER // Para outros tipos não especificados
+};
+
 /**
  * @brief Remove espaços em branco ao redor de uma string.
  * @param str String que deseja remover os espaços em branco ao redor.
@@ -27,6 +39,6 @@ std::string trim(const std::string& str);
  * @param type Tipo da mensagem (INFO, ERROR, DISCOVERY, RESPONSE)
  * @param message A mensagem a ser exibida no log
  */
-void logMessage(const std::string& type, const std::string& message);
+void logMessage(LogType type, const std::string& message);
 
 #endif // UTILS_H

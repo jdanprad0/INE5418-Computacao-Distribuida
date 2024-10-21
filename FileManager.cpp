@@ -1,4 +1,5 @@
 #include "FileManager.h"
+#include "Utils.h"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -103,4 +104,27 @@ void FileManager::assembleFile(const std::string& file_name, int total_chunks) {
 
     output_file.close();
     std::cout << "Arquivo " << file_name << " montado com sucesso!" << "\n" << std::endl;
+}
+
+void FileManager::initializeChunkResponses(const std::string& file_name, int total_chunks) {
+    // Verifica se já existe uma entrada para o file_name
+    if (chunk_responses.find(file_name) == chunk_responses.end()) {
+        // Inicializa a lista de chunks
+        chunk_responses[file_name].resize(total_chunks, {"", 0, 0}); // Inicializa com IP vazio, porta 0 e velocidade 0
+    }
+}
+
+/**
+ * @brief Armazena informações de chunks recebidos para um arquivo específico.
+ */
+void FileManager::storeChunkResponses(const std::string& file_name, const std::vector<int>& chunk_ids, const std::string& ip, int port, int transfer_speed) {
+    for (const int chunk_id : chunk_ids) {
+        // Verifica se o chunk_id está dentro do intervalo
+        if (chunk_id < chunk_responses[file_name].size()) {
+            std::lock_guard<std::mutex> lock(mapMutex); // Bloqueia o acesso ao mapa apenas durante a atualização
+            chunk_responses[file_name][chunk_id] = {ip, port, transfer_speed};
+        } else {
+            logMessage(LogType::ERROR, "chunk_id " + std::to_string(chunk_id) + " está fora do intervalo para o arquivo: " + file_name);
+        }
+    }
 }
