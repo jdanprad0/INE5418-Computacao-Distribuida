@@ -11,7 +11,7 @@ make clean
 make
 
 # Define o arquivo de configuração
-config_file="src/config.tsx"
+config_file="src/config.txt"
 
 # Obtém o IP público da máquina
 public_ip=$(curl -s ifconfig.me)
