@@ -14,7 +14,7 @@
 #define BLUE    "\033[94m"
 #define CIANO   "\033[96m"
 
-#define RESPONSE_TIMEOUT_SECONDS 5
+#define RESPONSE_TIMEOUT_SECONDS 10
 
 // Enumeração para os tipos de mensagens de log
 enum class LogType {
