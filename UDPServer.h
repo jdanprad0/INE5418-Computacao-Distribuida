@@ -108,8 +108,9 @@ public:
      * @brief Envia uma mensagem de descoberta para os vizinhos.
      * @param message Mensagem a ser enviada.
      * @param direct_sender_ip Endereço IP do peer que enviou a mensagem.
+     * @param original_sender_ip Ip de quem deseja receber o arquivo.
      */
-    void sendDiscoveryMessage(const std::string& message, std::string direct_sender_ip);
+    void sendDiscoveryMessage(const std::string& message, std::string direct_sender_ip, std::string original_sender_ip);
 };
 
 #endif // UDPSERVER_H

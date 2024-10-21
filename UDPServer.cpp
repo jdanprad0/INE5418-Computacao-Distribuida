@@ -224,15 +224,15 @@ void UDPServer::initiateDiscovery(const std::string& file_name, int total_chunks
     std::string message = buildDiscoveryMessage(file_name, total_chunks, ttl, original_sender_ip, original_sender_UDP_port);
 
     // Envia a mensagem para os vizinhos
-    sendDiscoveryMessage(message, direct_sender_ip);
+    sendDiscoveryMessage(message, direct_sender_ip, original_sender_ip);
 }
 
 /**
  * @brief Envia uma mensagem de descoberta para os vizinhos.
  */
-void UDPServer::sendDiscoveryMessage(const std::string& message, std::string direct_sender_ip) {
+void UDPServer::sendDiscoveryMessage(const std::string& message, std::string direct_sender_ip, std::string original_sender_ip) {
     for (const auto& [neighbor_ip, neighbor_port] : udpNeighbors) {
-        if (neighbor_ip != direct_sender_ip) {
+        if (neighbor_ip != direct_sender_ip && neighbor_ip != original_sender_ip) {
             struct sockaddr_in neighbor_addr;
             neighbor_addr.sin_family = AF_INET;
             neighbor_addr.sin_addr.s_addr = inet_addr(neighbor_ip.c_str());
