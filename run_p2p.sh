@@ -35,4 +35,3 @@ if [[ -n "$index" ]]; then
 else
     echo "IP público $public_ip não encontrado no arquivo de configuração."
 fi
-#
