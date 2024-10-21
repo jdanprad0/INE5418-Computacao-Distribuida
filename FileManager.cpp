@@ -120,7 +120,7 @@ void FileManager::initializeChunkResponses(const std::string& file_name, int tot
 void FileManager::storeChunkResponses(const std::string& file_name, const std::vector<int>& chunk_ids, const std::string& ip, int port, int transfer_speed) {
     for (const int chunk_id : chunk_ids) {
         // Verifica se o chunk_id está dentro do intervalo
-        if (chunk_id < chunk_responses[file_name].size()) {
+        if (static_cast<size_t>(chunk_id) < chunk_responses[file_name].size()) {
             std::lock_guard<std::mutex> lock(mapMutex); // Bloqueia o acesso ao mapa apenas durante a atualização
             chunk_responses[file_name][chunk_id] = {ip, port, transfer_speed};
         } else {
