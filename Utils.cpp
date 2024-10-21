@@ -21,6 +21,7 @@ void logMessage(const std::string& type, const std::string& message) {
     } else if (type == "RESPONSE") {
         std::cout << GREEN << "[" << type << "] " << message << RESET << std::endl;
     } else {
-        std::cout << "[" << type << "] " << message << std::endl;
+        // Aplica cor magenta para tipos desconhecidos
+        std::cout << MAGENTA << "[" << type << "] " << message << RESET << std::endl;
     }
 }

@@ -89,9 +89,6 @@ void UDPServer::run() {
 
             // Cria uma nova thread para processar a mensagem recebida
             std::thread(&UDPServer::processMessage, this, message, direct_sender_info).detach();
-            
-            // Indica que esta aguardando novas mensagens
-            logMessage("INFO", "Servidor UDP em execução... Aguardando mensagens...");
         }
     }
 }
