@@ -64,18 +64,18 @@ void UDPServer::run() {
             buffer[bytes_received] = '\0';
             std::string message(buffer);
 
-            // Identifica o IP do peer que me enviou a mensagem
+            // Identifica o IP do peer que enviou a mensagem
             char direct_sender_ip[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &(sender_addr.sin_addr), direct_sender_ip, INET_ADDRSTRLEN);
 
-            // Obtém a porta do peer que me enviou a mensagem
+            // Obtém a porta do peer que enviou a mensagem
             int direct_sender_port = ntohs(sender_addr.sin_port);
 
             // Converte o endereço IP para uma string
-            std::string direct_sender_ip_str(direct_sender_ip);
+            PeerInfo direct_sender_info(std::string(direct_sender_ip), direct_sender_port);
 
             // Cria uma nova thread para processar a mensagem recebida
-            std::thread(&UDPServer::processMessage, this, message, direct_sender_ip_str, direct_sender_port).detach();
+            std::thread(&UDPServer::processMessage, this, message, direct_sender_info).detach();
         }
     }
 }
@@ -83,16 +83,16 @@ void UDPServer::run() {
 /**
  * @brief Processa a mensagem recebida em uma nova thread.
  */
-void UDPServer::processMessage(const std::string& message, const std::string& direct_sender_ip, int direct_sender_port) {
+void UDPServer::processMessage(const std::string& message, const PeerInfo& direct_sender_info) {
     // Processa a mensagem
     std::stringstream ss(message);
     std::string command;
     ss >> command;
 
     if (command == "DISCOVERY") {
-        processDiscoveryMessage(ss, direct_sender_ip);
+        processDiscoveryMessage(ss, direct_sender_info);
     } else if (command == "RESPONSE") {
-        processResponseMessage(ss, direct_sender_ip, direct_sender_port);
+        processResponseMessage(ss, direct_sender_info);
     } else {
         std::cout << "Comando desconhecido recebido: " << command << "\n" << std::endl;
     }
@@ -101,7 +101,7 @@ void UDPServer::processMessage(const std::string& message, const std::string& di
 /**
  * @brief Processa a mensagem DISCOVERY.
  */
-void UDPServer::processDiscoveryMessage(std::stringstream& message, const std::string& direct_sender_ip) {
+void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerInfo& direct_sender_info) {
     std::string file_name, original_sender_ip_port, original_sender_ip;
     int total_chunks, ttl, original_sender_UDP_port;
     size_t colon_pos;
@@ -115,7 +115,7 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const std::s
     original_sender_UDP_port = std::stoi(original_sender_ip_port.substr(colon_pos + 1));
 
     std::cout << "Eu " << ip << ":" << port << " recebi pedido de descoberta do arquivo " << file_name
-              << " com TTL " << ttl << " do Peer " << direct_sender_ip
+              << " com TTL " << ttl << " do Peer " << direct_sender_info.ip << ":" << direct_sender_info.port
               << ". A resposta deve ser feita para o Peer " << original_sender_ip << ":" << original_sender_UDP_port << "\n" << std::endl;
 
     // Verifica se possui algum chunk do arquivo
@@ -124,14 +124,14 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const std::s
     // Propaga a mensagem para os vizinhos se o TTL for maior que zero
     if (ttl > 0) {
         std::this_thread::sleep_for(std::chrono::seconds(1)); // Atraso de 1 segundo
-        initiateDiscovery(file_name, total_chunks, ttl - 1, direct_sender_ip, original_sender_ip, original_sender_UDP_port);
+        sendDiscoveryMessage(file_name, total_chunks, ttl - 1, original_sender_ip, original_sender_UDP_port);
     }
 }
 
 /**
  * @brief Processa a mensagem RESPONSE.
  */
-void UDPServer::processResponseMessage(std::stringstream& ss, const std::string& direct_sender_ip, int direct_sender_port) {
+void UDPServer::processResponseMessage(std::stringstream& ss, const PeerInfo& direct_sender_info) {
     std::string file_name;
     std::vector<int> chunks_received;
 
@@ -145,7 +145,7 @@ void UDPServer::processResponseMessage(std::stringstream& ss, const std::string&
     }
 
     // Exibe os chunks recebidos na mensagem de resposta
-    std::cout << "Eu " << ip << ":" << port << " recebi a resposta do Peer " << direct_sender_ip << ":" << direct_sender_port << " para o arquivo " << file_name
+    std::cout << "Eu " << ip << ":" << port << " recebi a resposta do Peer " << direct_sender_info.ip << ":" << direct_sender_info.port << " para o arquivo " << file_name
               << ". Chunks disponíveis: ";
 
     for (const int& chunk : chunks_received) {
@@ -217,35 +217,25 @@ std::string UDPServer::buildChunkResponseMessage(const std::string& file_name, c
 }
 
 /**
- * @brief Inicia o processo de descoberta de um arquivo.
- */
-void UDPServer::initiateDiscovery(const std::string& file_name, int total_chunks, int ttl, std::string direct_sender_ip, std::string original_sender_ip, int original_sender_UDP_port) {
-    // Constrói a mensagem usando buildDiscoveryMessage
-    std::string message = buildDiscoveryMessage(file_name, total_chunks, ttl, original_sender_ip, original_sender_UDP_port);
-
-    // Envia a mensagem para os vizinhos
-    sendDiscoveryMessage(message, direct_sender_ip, original_sender_ip);
-}
-
-/**
  * @brief Envia uma mensagem de descoberta para os vizinhos.
  */
-void UDPServer::sendDiscoveryMessage(const std::string& message, std::string direct_sender_ip, std::string original_sender_ip) {
+void UDPServer::sendDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, std::string original_sender_ip, int original_sender_UDP_port) {
+    std::string message = buildDiscoveryMessage(file_name, total_chunks, ttl, original_sender_ip, original_sender_UDP_port);
+
     for (const auto& [neighbor_ip, neighbor_port] : udpNeighbors) {
-        if (neighbor_ip != direct_sender_ip && neighbor_ip != original_sender_ip) {
-            struct sockaddr_in neighbor_addr;
-            neighbor_addr.sin_family = AF_INET;
-            neighbor_addr.sin_addr.s_addr = inet_addr(neighbor_ip.c_str());
-            neighbor_addr.sin_port = htons(neighbor_port);
+        struct sockaddr_in neighbor_addr;
+        neighbor_addr.sin_family = AF_INET;
+        neighbor_addr.sin_addr.s_addr = inet_addr(neighbor_ip.c_str());
+        neighbor_addr.sin_port = htons(neighbor_port);
 
-            ssize_t bytes_sent = sendto(sockfd, message.c_str(), message.size(), 0,
-                            (struct sockaddr*)&neighbor_addr, sizeof(neighbor_addr));
+        ssize_t bytes_sent = sendto(sockfd, message.c_str(), message.size(), 0,
+                        (struct sockaddr*)&neighbor_addr, sizeof(neighbor_addr));
 
-            if (bytes_sent < 0) {
-                perror("Erro ao enviar mensagem UDP");
-            } else {
-                std::cout << "Eu " << ip << ":" << port << " enviei a mensagem de descoberta <<" << message << ">>" << " para o Peer " << neighbor_ip << ":" << neighbor_port << "\n" << std::endl;
-            }
+        if (bytes_sent < 0) {
+            perror("Erro ao enviar mensagem UDP");
+        } else {
+            std::cout << "Eu " << ip << ":" << port << " enviei a mensagem de descoberta <<" << message << ">>" << " para o Peer " << neighbor_ip << ":" << neighbor_port << "\n" << std::endl;
         }
+        
     }
 }
