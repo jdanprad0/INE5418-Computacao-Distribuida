@@ -18,7 +18,7 @@ UDPServer::UDPServer(const std::string& ip, int port, int peer_id, FileManager& 
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in addr{};
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(ip.c_str());
+    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     addr.sin_port = htons(port);
 
     if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
