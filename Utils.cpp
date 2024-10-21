@@ -12,17 +12,21 @@ std::string trim(const std::string& str) {
  * @brief Função auxiliar para formatar e exibir mensagens de log de forma consistente, com cores.
  */
 void logMessage(const std::string& type, const std::string& message) {
+    std::cout << RESET;
+    
     if (type == "ERROR") {
-        std::cout << RED << "[" << type << "] " << message << RESET << std::endl;
+        std::cout << RED << "[" << type << "] " << message;
     } else if (type == "INFO") {
-        std::cout << BLUE << "[" << type << "] " << message << RESET << std::endl;
-   } else if (type == "DISCOVERY_RECEIVED") {
-        std::cout << YELLOW << "[" << type << "] " << message << RESET << std::endl;
+        std::cout << BLUE << "[" << type << "] " << message;
+    } else if (type == "DISCOVERY_RECEIVED") {
+        std::cout << YELLOW << "[" << type << "] " << message;
     } else if (type == "DISCOVERY_SENT") {
-        std::cout << MAGENTA << "[" << type << "] " << message << RESET << std::endl;
+        std::cout << MAGENTA << "[" << type << "] " << message;
     } else if (type == "RESPONSE") {
-        std::cout << GREEN << "[" << type << "] " << message << RESET << std::endl;
+        std::cout << GREEN << "[" << type << "] " << message;
     } else {
-        std::cout << CIANO << "[" << type << "] " << message << RESET << std::endl;
+        std::cout << CIANO << "[" << type << "] " << message;
     }
+
+    std::cout << RESET << std::endl;
 }
