@@ -108,10 +108,10 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const std::s
               << ". A resposta deve ser feita para o Peer " << original_sender_ip << "\n" << std::endl;
 
     // Verifica se possui algum chunk do arquivo
-    bool response = sendChunkResponse(file_name, original_sender_ip, original_sender_UDP_port);
+    sendChunkResponse(file_name, original_sender_ip, original_sender_UDP_port);
 
     // Propaga a mensagem para os vizinhos se o TTL for maior que zero
-    if (!response && ttl > 0) {
+    if (ttl > 0) {
         std::this_thread::sleep_for(std::chrono::seconds(1)); // Atraso de 1 segundo
         initiateDiscovery(file_name, total_chunks, ttl - 1, direct_sender_ip, original_sender_ip, original_sender_UDP_port);
     }
