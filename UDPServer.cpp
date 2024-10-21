@@ -23,7 +23,7 @@ UDPServer::UDPServer(const std::string& ip, int port, int peer_id, FileManager& 
 
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr("192.168.0.105");
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(port);
 
     if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
@@ -102,15 +102,21 @@ void UDPServer::processMessage(const std::string& message, const std::string& di
  * @brief Processa a mensagem DISCOVERY.
  */
 void UDPServer::processDiscoveryMessage(std::stringstream& message, const std::string& direct_sender_ip) {
-    std::string file_name, original_sender_ip;
+    std::string file_name, original_sender_ip_port, original_sender_ip;
     int total_chunks, ttl, original_sender_UDP_port;
+    size_t colon_pos;
 
     // Extrai os dados da mensagem DISCOVERY
-    message >> file_name >> total_chunks >> ttl >> original_sender_ip >> original_sender_UDP_port;
+    message >> file_name >> total_chunks >> ttl >> original_sender_ip_port;
+
+    // Separar o IP e a porta
+    colon_pos = original_sender_ip_port.find(':');
+    original_sender_ip = original_sender_ip_port.substr(0, colon_pos);
+    original_sender_UDP_port = std::stoi(original_sender_ip_port.substr(colon_pos + 1));
 
     std::cout << "Eu " << ip << ":" << port << " recebi pedido de descoberta do arquivo " << file_name
               << " com TTL " << ttl << " do Peer " << direct_sender_ip
-              << ". A resposta deve ser feita para o Peer " << original_sender_ip << "\n" << std::endl;
+              << ". A resposta deve ser feita para o Peer " << original_sender_ip << ":" << original_sender_UDP_port << "\n" << std::endl;
 
     // Verifica se possui algum chunk do arquivo
     sendChunkResponse(file_name, original_sender_ip, original_sender_UDP_port);
@@ -139,7 +145,7 @@ void UDPServer::processResponseMessage(std::stringstream& ss, const std::string&
     }
 
     // Exibe os chunks recebidos na mensagem de resposta
-    std::cout << "Eu " << ip << ":" << port << " recebi a resposta do Peer " << direct_sender_ip << " de sua porta UDP " << direct_sender_port << " para o arquivo " << file_name
+    std::cout << "Eu " << ip << ":" << port << " recebi a resposta do Peer " << direct_sender_ip << ":" << direct_sender_port << " para o arquivo " << file_name
               << ". Chunks disponíveis: ";
 
     for (const int& chunk : chunks_received) {
@@ -172,7 +178,7 @@ bool UDPServer::sendChunkResponse(const std::string& file_name, const std::strin
             return true;
         } else {
             // Imprime uma mensagem informando quais chunks foram enviados
-            std::cout << "Eu " << ip << ":" << port << ", enviei a resposta para o Peer " << requester_ip
+            std::cout << "Eu " << ip << ":" << port << ", enviei a resposta para o Peer " << requester_ip << ":" << requester_UDP_port
                       << " com os chunks disponíveis do arquivo " << file_name << ": ";
 
             // Listando os chunks disponíveis
@@ -194,7 +200,7 @@ bool UDPServer::sendChunkResponse(const std::string& file_name, const std::strin
  */
 std::string UDPServer::buildDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, std::string original_sender_ip, int original_sender_UDP_port) const {
     std::stringstream ss;
-    ss << "DISCOVERY " << file_name << " " << total_chunks << " " << ttl << " " << original_sender_ip << " " << original_sender_UDP_port;
+    ss << "DISCOVERY " << file_name << " " << total_chunks << " " << ttl << " " << original_sender_ip << ":" << original_sender_UDP_port;
     return ss.str();
 }
 
