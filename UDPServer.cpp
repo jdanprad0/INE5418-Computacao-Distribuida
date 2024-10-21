@@ -111,7 +111,7 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const std::s
     bool response = sendChunkResponse(file_name, original_sender_ip, original_sender_UDP_port);
 
     // Propaga a mensagem para os vizinhos se o TTL for maior que zero
-    if (response && ttl > 0) {
+    if (!response && ttl > 0) {
         std::this_thread::sleep_for(std::chrono::seconds(1)); // Atraso de 1 segundo
         initiateDiscovery(file_name, total_chunks, ttl - 1, direct_sender_ip, original_sender_ip, original_sender_UDP_port);
     }
@@ -134,7 +134,7 @@ void UDPServer::processResponseMessage(std::stringstream& ss, const std::string&
     }
 
     // Exibe os chunks recebidos na mensagem de resposta
-    std::cout << "Eu, Peer " << ip << "Recebi a resposta do Peer " << direct_sender_ip << " de sua porta UDP " << direct_sender_port << " para o arquivo " << file_name
+    std::cout << "Eu, Peer " << ip << " recebi a resposta do Peer " << direct_sender_ip << " de sua porta UDP " << direct_sender_port << " para o arquivo " << file_name
               << ". Chunks disponíveis: ";
 
     for (const int& chunk : chunks_received) {
@@ -233,7 +233,7 @@ void UDPServer::sendDiscoveryMessage(const std::string& message, std::string dir
             if (bytes_sent < 0) {
                 perror("Erro ao enviar mensagem UDP");
             } else {
-                std::cout << "Eu, Peer " << peer_id << " enviei uma mensagem para o Peer " << neighbor_ip << "\n" << std::endl;
+                std::cout << "Eu, Peer " << ip << " enviei a mensagem de descoberta <<" << message << ">>" << " para o Peer " << neighbor_ip << "\n" << std::endl;
             }
         }
     }
