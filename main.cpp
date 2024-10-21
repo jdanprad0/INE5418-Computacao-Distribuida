@@ -9,6 +9,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Mata todos os processos nas portas que serão utilizadas (6000 a 6005 para UDP e 7000 a 7005 para TCP)
+    std::cout << "Matando processos nas portas 6000-6005 e 7000-7005..." << std::endl;
+    system("lsof -ti :6000-6005,7000-7005 | xargs kill -9");
+
     int peer_id = std::stoi(argv[1]);
 
     // Carrega as configurações
