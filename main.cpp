@@ -17,6 +17,7 @@ int main(int argc, char* argv[]) {
     logMessage(LogType::INFO, "Matando processos nas portas 6000-6025 e 7000-7025...");
     system("lsof -ti :6000-6025,7000-7025 | xargs -r kill -9 2>/dev/null");
 
+    logMessage(LogType::ERROR, "stoi -> main");
     int peer_id = std::stoi(argv[1]);
 
     // Carrega as configurações
