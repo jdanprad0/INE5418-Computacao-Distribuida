@@ -133,7 +133,7 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerIn
 
     // Só manda mensagem de descoberta de mensagens que não foi o próprio peer que enviou
     if (chunk_requester_ip != ip) {
-        logMessage("DISCOVERY",
+        logMessage("DISCOVERY_RECEIVED",
                 "Recebido pedido de descoberta do arquivo '" + file_name + "' com TTL " + std::to_string(ttl) +
                 " do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
                 ". Resposta será enviada para o Peer " + chunk_requester_ip + ":" + std::to_string(chunk_requester_port));
@@ -199,7 +199,7 @@ void UDPServer::sendDiscoveryMessage(const std::string& file_name, int total_chu
         if (bytes_sent < 0) {
             perror("Erro ao enviar mensagem UDP");
         } else {
-            logMessage("DISCOVERY",
+            logMessage("DISCOVERY_SENT",
                        "Mensagem de descoberta enviada para Peer " + neighbor_ip + ":" + std::to_string(neighbor_port) +
                        " -> " + message);
         }

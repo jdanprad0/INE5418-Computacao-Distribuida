@@ -16,12 +16,13 @@ void logMessage(const std::string& type, const std::string& message) {
         std::cout << RED << "[" << type << "] " << message << RESET << std::endl;
     } else if (type == "INFO") {
         std::cout << BLUE << "[" << type << "] " << message << RESET << std::endl;
-    } else if (type == "DISCOVERY") {
+   } else if (type == "DISCOVERY_RECEIVED") {
         std::cout << YELLOW << "[" << type << "] " << message << RESET << std::endl;
+    } else if (type == "DISCOVERY_SENT") {
+        std::cout << MAGENTA << "[" << type << "] " << message << RESET << std::endl;
     } else if (type == "RESPONSE") {
         std::cout << GREEN << "[" << type << "] " << message << RESET << std::endl;
     } else {
-        // Aplica cor magenta para tipos desconhecidos
-        std::cout << MAGENTA << "[" << type << "] " << message << RESET << std::endl;
+        std::cout << CIANO << "[" << type << "] " << message << RESET << std::endl;
     }
 }
