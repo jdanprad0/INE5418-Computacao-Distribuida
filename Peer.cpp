@@ -52,6 +52,9 @@ void Peer::searchFile(const std::string& metadata_file) {
     meta_file >> initial_ttl;
     meta_file.close();
 
+    // Monta um Peer Info
+    PeerInfo original_sender_info(std::string(ip), udp_port);
+
     // Inicia o processo de descoberta do arquivo
-    udpServer.sendDiscoveryMessage(file_name, total_chunks, initial_ttl, ip, udp_port);
+    udpServer.sendDiscoveryMessage(file_name, total_chunks, initial_ttl, original_sender_info);
 }
