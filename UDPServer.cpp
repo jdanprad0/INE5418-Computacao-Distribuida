@@ -15,10 +15,15 @@
  */
 UDPServer::UDPServer(const std::string& ip, int port, int peer_id, FileManager& fileManager)
     : ip(ip), port(port), peer_id(peer_id), fileManager(fileManager) {
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    struct sockaddr_in addr{};
+    
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("Falha ao criar socket");
+        exit(EXIT_FAILURE);
+    }
+
+    struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    addr.sin_addr.s_addr = inet_addr("192.168.0.105");
     addr.sin_port = htons(port);
 
     if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
@@ -103,7 +108,7 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const std::s
     // Extrai os dados da mensagem DISCOVERY
     message >> file_name >> total_chunks >> ttl >> original_sender_ip >> original_sender_UDP_port;
 
-    std::cout << "Eu, Peer " << ip << " recebi pedido de descoberta do arquivo " << file_name
+    std::cout << "Eu " << ip << ":" << port << " recebi pedido de descoberta do arquivo " << file_name
               << " com TTL " << ttl << " do Peer " << direct_sender_ip
               << ". A resposta deve ser feita para o Peer " << original_sender_ip << "\n" << std::endl;
 
@@ -134,7 +139,7 @@ void UDPServer::processResponseMessage(std::stringstream& ss, const std::string&
     }
 
     // Exibe os chunks recebidos na mensagem de resposta
-    std::cout << "Eu, Peer " << ip << " recebi a resposta do Peer " << direct_sender_ip << " de sua porta UDP " << direct_sender_port << " para o arquivo " << file_name
+    std::cout << "Eu " << ip << ":" << port << " recebi a resposta do Peer " << direct_sender_ip << " de sua porta UDP " << direct_sender_port << " para o arquivo " << file_name
               << ". Chunks disponíveis: ";
 
     for (const int& chunk : chunks_received) {
@@ -167,7 +172,7 @@ bool UDPServer::sendChunkResponse(const std::string& file_name, const std::strin
             return true;
         } else {
             // Imprime uma mensagem informando quais chunks foram enviados
-            std::cout << "Eu, Peer " << ip << ", enviei a resposta para o Peer " << requester_ip
+            std::cout << "Eu " << ip << ":" << port << ", enviei a resposta para o Peer " << requester_ip
                       << " com os chunks disponíveis do arquivo " << file_name << ": ";
 
             // Listando os chunks disponíveis
@@ -179,7 +184,7 @@ bool UDPServer::sendChunkResponse(const std::string& file_name, const std::strin
             return true;
         }
     } else {
-        std::cout << "Eu, Peer " << ip << " não possuo chunks do arquivo " << file_name << "\n" << std::endl;
+        std::cout << "Eu " << ip << ":" << port << " não possuo chunks do arquivo " << file_name << "\n" << std::endl;
         return false;
     }
 }
@@ -222,7 +227,7 @@ void UDPServer::initiateDiscovery(const std::string& file_name, int total_chunks
 void UDPServer::sendDiscoveryMessage(const std::string& message, std::string direct_sender_ip) {
     for (const auto& [neighbor_ip, neighbor_port] : udpNeighbors) {
         if (neighbor_ip != direct_sender_ip) {
-            struct sockaddr_in neighbor_addr{};
+            struct sockaddr_in neighbor_addr;
             neighbor_addr.sin_family = AF_INET;
             neighbor_addr.sin_addr.s_addr = inet_addr(neighbor_ip.c_str());
             neighbor_addr.sin_port = htons(neighbor_port);
@@ -233,7 +238,7 @@ void UDPServer::sendDiscoveryMessage(const std::string& message, std::string dir
             if (bytes_sent < 0) {
                 perror("Erro ao enviar mensagem UDP");
             } else {
-                std::cout << "Eu, Peer " << ip << " enviei a mensagem de descoberta <<" << message << ">>" << " para o Peer " << neighbor_ip << "\n" << std::endl;
+                std::cout << "Eu " << ip << ":" << port << " enviei a mensagem de descoberta <<" << message << ">>" << " para o Peer " << neighbor_ip << ":" << neighbor_port << "\n" << std::endl;
             }
         }
     }
