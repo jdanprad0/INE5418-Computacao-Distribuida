@@ -1,4 +1,5 @@
 #include "UDPServer.h"
+#include "Utils.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -9,13 +10,6 @@
 #include <chrono>
 #include <sstream>
 #include <algorithm>
-
-/**
- * @brief Função auxiliar para formatar e exibir mensagens de log de forma consistente
- */
-void logMessage(const std::string& type, const std::string& message) {
-    std::cout << "[" << type << "] " << message << std::endl;
-}
 
 /**
  * @brief Construtor da classe UDPServer.
@@ -95,6 +89,9 @@ void UDPServer::run() {
 
             // Cria uma nova thread para processar a mensagem recebida
             std::thread(&UDPServer::processMessage, this, message, direct_sender_info).detach();
+            
+            // Indica que esta aguardando novas mensagens
+            logMessage("INFO", "Servidor UDP em execução... Aguardando mensagens...");
         }
     }
 }
@@ -137,21 +134,24 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerIn
     chunk_requester_ip = chunk_requester_ip_port.substr(0, colon_pos);
     chunk_requester_port = std::stoi(chunk_requester_ip_port.substr(colon_pos + 1));
 
-    logMessage("DISCOVERY",
-               "Recebido pedido de descoberta do arquivo '" + file_name + "' com TTL " + std::to_string(ttl) +
-               " do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
-               ". Resposta será enviada para o Peer " + chunk_requester_ip + ":" + std::to_string(chunk_requester_port));
+    // Só manda mensagem de descoberta de mensagens que não foi o próprio peer que enviou
+    if (chunk_requester_ip != ip) {
+        logMessage("DISCOVERY",
+                "Recebido pedido de descoberta do arquivo '" + file_name + "' com TTL " + std::to_string(ttl) +
+                " do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
+                ". Resposta será enviada para o Peer " + chunk_requester_ip + ":" + std::to_string(chunk_requester_port));
 
-    // Monta um Peer Info do solicitante dos chuncks do arquivo
-    PeerInfo chunk_requester_info(std::string(chunk_requester_ip), chunk_requester_port);
+        // Monta um Peer Info do solicitante dos chuncks do arquivo
+        PeerInfo chunk_requester_info(std::string(chunk_requester_ip), chunk_requester_port);
 
-    // Verifica se possui chunks do arquivo e envia a resposta
-    sendChunkResponse(file_name, chunk_requester_info);
+        // Verifica se possui chunks do arquivo e envia a resposta
+        sendChunkResponse(file_name, chunk_requester_info);
 
-    // Propaga a mensagem para os vizinhos se o TTL for maior que zero
-    if (ttl > 0) {
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // Atraso de 1 segundo
-        sendDiscoveryMessage(file_name, total_chunks, ttl - 1, chunk_requester_info);
+        // Propaga a mensagem para os vizinhos se o TTL for maior que zero
+        if (ttl > 0) {
+            std::this_thread::sleep_for(std::chrono::seconds(1)); // Atraso de 1 segundo
+            sendDiscoveryMessage(file_name, total_chunks, ttl - 1, chunk_requester_info);
+        }
     }
 }
 

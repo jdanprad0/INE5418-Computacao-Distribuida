@@ -7,3 +7,20 @@
 std::string trim(const std::string& str) {
     return std::regex_replace(str, std::regex("^\\s+|\\s+$"), "");
 }
+
+/**
+ * @brief Função auxiliar para formatar e exibir mensagens de log de forma consistente, com cores.
+ */
+void logMessage(const std::string& type, const std::string& message) {
+    if (type == "ERROR") {
+        std::cout << RED << "[" << type << "] " << message << RESET << std::endl;
+    } else if (type == "INFO") {
+        std::cout << BLUE << "[" << type << "] " << message << RESET << std::endl;
+    } else if (type == "DISCOVERY") {
+        std::cout << YELLOW << "[" << type << "] " << message << RESET << std::endl;
+    } else if (type == "RESPONSE") {
+        std::cout << GREEN << "[" << type << "] " << message << RESET << std::endl;
+    } else {
+        std::cout << "[" << type << "] " << message << std::endl;
+    }
+}
