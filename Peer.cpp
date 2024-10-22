@@ -1,4 +1,5 @@
 #include "Peer.h"
+#include "Utils.h"
 #include <thread>
 #include <iostream>
 #include <fstream>
@@ -19,6 +20,8 @@ Peer::Peer(int id, const std::string& ip, int udp_port, int tcp_port, int transf
  * @brief Inicia os servidores UDP e TCP.
  */
 void Peer::start() {
+    logMessage(LogType::INFO, "Peer " + std::to_string(id) + " inicializado.");
+ 
     // Inicia o servidor UDP em uma thread separada
     std::thread udp_thread(&UDPServer::run, &udp_server);
 

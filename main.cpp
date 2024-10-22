@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     std::thread peer_thread(&Peer::start, &peer);
 
     // Simula a entrada de um arquivo de metadados para buscar
-    if (peer_id) { // Gambiarra por enquanto
+    if (!peer_id) { // Gambiarra por enquanto
         std::this_thread::sleep_for(std::chrono::seconds(2)); // Aguarda a inicialização
         peer.searchFile("image.png.p2p");
     }

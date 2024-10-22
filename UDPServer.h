@@ -123,8 +123,9 @@ public:
      * @param total_chunks Número total de chunks que compõem o arquivo.
      * @param ttl Time-to-live para limitar o alcance do flooding.
      * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
+     * @param retransmission Indica se a mensagem de descoberta é própria ou apenas uma retransmissão (flooding). Valor padrão é falso.
      */
-    void sendDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info);
+    void sendDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool retransmission = false);
     
     /**
      * @brief Envia uma resposta (RESPONSE) contendo os chunks disponíveis para um arquivo.

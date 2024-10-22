@@ -101,14 +101,17 @@ void UDPServer::run() {
 void UDPServer::processMessage(const std::string& message, const PeerInfo& direct_sender_info) {
     std::stringstream ss(message);
     std::string command, file_name;
-    ss >> command >> file_name;
+    ss >> command;
 
     if (command == "DISCOVERY") {
          processDiscoveryMessage(ss, direct_sender_info);
     } else if (command == "RESPONSE") {
         {
+            ss >> file_name;
             std::lock_guard<std::mutex> lock(processing_mutex);
             if (processing_active_map[file_name]) {
+                ss.clear(); // Limpa qualquer flag de erro no stream
+                ss.seekg(0); // Volta o stream para o início
                 processResponseMessage(ss, direct_sender_info);
             } else {
                 logMessage(LogType::OTHER, "Mensagem RESPONSE recebida para " + file_name + ", mas o processamento está desativado.");
@@ -155,7 +158,7 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerIn
         // Propaga a mensagem para os vizinhos se o TTL for maior que zero
         if (ttl > 0) {
             std::this_thread::sleep_for(std::chrono::seconds(1)); // Atraso de 1 segundo
-            sendDiscoveryMessage(file_name, total_chunks, ttl - 1, chunk_requester_info);
+            sendDiscoveryMessage(file_name, total_chunks, ttl - 1, chunk_requester_info, true);
         }
     }
 }
@@ -193,7 +196,7 @@ void UDPServer::processResponseMessage(std::stringstream& message, const PeerInf
 /**
  * @brief Envia uma mensagem de descoberta para todos os vizinhos.
  */
-void UDPServer::sendDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) {
+void UDPServer::sendDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool retransmission) {
     std::string message = buildDiscoveryMessage(file_name, total_chunks, ttl, chunk_requester_info);
     bool send_message = false;
 
@@ -220,7 +223,7 @@ void UDPServer::sendDiscoveryMessage(const std::string& file_name, int total_chu
     }
     
     // Inicia o timer em uma thread separada para o arquivo
-    if (send_message){
+    if (send_message && !retransmission){
         {
             std::lock_guard<std::mutex> lock(processing_mutex);
             processing_active_map[file_name] = true; // Marca como ativo antes de iniciar o timer
