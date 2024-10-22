@@ -114,7 +114,6 @@ void UDPServer::processMessage(const std::string& message, const PeerInfo& direc
                 logMessage(LogType::OTHER, "Mensagem RESPONSE recebida para " + file_name + ", mas o processamento está desativado.");
             }
         }
-        processResponseMessage(ss, direct_sender_info);
     } else {
         logMessage(LogType::ERROR, "Comando desconhecido recebido: " + command);
     }
@@ -137,7 +136,7 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerIn
     // Separa o IP e a porta do peer original
     colon_pos = chunk_requester_ip_port.find(':');
     chunk_requester_ip = chunk_requester_ip_port.substr(0, colon_pos);
-    logMessage(LogType::ERROR, "stoi -> processDiscoveryMessage");
+    //logMessage(LogType::ERROR, "stoi -> processDiscoveryMessage");
     chunk_requester_port = std::stoi(chunk_requester_ip_port.substr(colon_pos + 1));
 
     // Só manda mensagem de descoberta de mensagens que não foi o próprio peer que enviou

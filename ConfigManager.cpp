@@ -31,7 +31,6 @@ std::map<int, std::vector<int>> ConfigManager::loadTopology(const std::string& f
 
         std::string neighbor;
         while (std::getline(ss_neighbors, neighbor, ',')) {
-            logMessage(LogType::ERROR, "stoi -> loadTopology");
             int neighbor_id = std::stoi(neighbor);
             neighbors.push_back(neighbor_id);
         }

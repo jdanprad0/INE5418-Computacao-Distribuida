@@ -17,7 +17,6 @@ int main(int argc, char* argv[]) {
     logMessage(LogType::INFO, "Matando processos nas portas 6000-6025 e 7000-7025...");
     system("lsof -ti :6000-6025,7000-7025 | xargs -r kill -9 2>/dev/null");
 
-    logMessage(LogType::ERROR, "stoi -> main");
     int peer_id = std::stoi(argv[1]);
 
     // Carrega as configurações
@@ -44,10 +43,8 @@ int main(int argc, char* argv[]) {
 
     // Simula a entrada de um arquivo de metadados para buscar
 
-    if (peer_id == 0) { // gambiarra por enquanto
-        std::this_thread::sleep_for(std::chrono::seconds(2)); // Aguarda a inicialização
-        peer.searchFile("image.png.p2p");
-    }
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // Aguarda a inicialização
+    peer.searchFile("image.png.p2p");
 
     peer_thread.join();
 

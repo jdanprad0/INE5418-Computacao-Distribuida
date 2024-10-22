@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Acessa o diretório do projeto
-cd /home/ubuntu/INE5418-05208-20242-Computacao-Distribuida || exit
-
 # Faz o git pull
 git pull origin main
 
