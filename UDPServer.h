@@ -100,7 +100,7 @@ public:
      * @param message Stream com os dados da mensagem DISCOVERY.
      * @param direct_sender_info Informações sobre o peer que enviou diretamente a mensagem, incluindo seu endereço IP e porta UDP.
      */
-    void processDiscoveryMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
+    void processChunkDiscoveryMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
 
     /**
      * @brief Processa uma mensagem de resposta (RESPONSE).
@@ -112,7 +112,7 @@ public:
      * @param message Stream com os dados da mensagem RESPONSE.
      * @param direct_sender_info Informações sobre o peer que enviou diretamente a mensagem, incluindo seu endereço IP e porta UDP.
      */
-    void processResponseMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
+    void processChunkResponseMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
 
     /**
      * @brief Envia uma mensagem de descoberta (DISCOVERY) para todos os vizinhos.
@@ -196,6 +196,17 @@ public:
      */
     void startTimer(const std::string& file_name);
 
+    /**
+     * @brief Função auxiliar que configura o endereço IP e porta e envia uma mensagem UDP.
+     * 
+     * Esta função configura o endereço (IP e porta) e envia uma mensagem UDP para o peer especificado.
+     * 
+     * @param ip O endereço IP do peer para o qual a mensagem será enviada.
+     * @param port A porta do peer para o qual a mensagem será enviada.
+     * @param message A mensagem que será enviada.
+     * @return O número de bytes enviados, ou um valor negativo em caso de erro.
+     */
+    ssize_t UDPServer::sendUDPMessage(const std::string& ip, int port, const std::string& message);
 };
 
 #endif // UDPSERVER_H

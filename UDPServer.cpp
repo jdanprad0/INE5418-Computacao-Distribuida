@@ -104,15 +104,16 @@ void UDPServer::processMessage(const std::string& message, const PeerInfo& direc
     ss >> command;
 
     if (command == "DISCOVERY") {
-         processDiscoveryMessage(ss, direct_sender_info);
+         processChunkDiscoveryMessage(ss, direct_sender_info);
     } else if (command == "RESPONSE") {
         {
+            std::streampos pos_before_file_name = ss.tellg(); // Salva a posição antes de ler o file_name
             ss >> file_name;
             std::lock_guard<std::mutex> lock(processing_mutex);
             if (processing_active_map[file_name]) {
                 ss.clear(); // Limpa qualquer flag de erro no stream
-                ss.seekg(0); // Volta o stream para o início
-                processResponseMessage(ss, direct_sender_info);
+                ss.seekg(pos_before_file_name); // Volta para a posição antes de ler o file_name
+                processChunkResponseMessage(ss, direct_sender_info);
             } else {
                 logMessage(LogType::OTHER, "Mensagem RESPONSE recebida para " + file_name + ", mas o processamento está desativado.");
             }
@@ -128,7 +129,7 @@ void UDPServer::processMessage(const std::string& message, const PeerInfo& direc
  * Extrai as informações da mensagem DISCOVERY, verifica se o peer atual possui chunks
  * do arquivo solicitado e, se sim, envia uma resposta. Caso contrário, propaga a mensagem.
  */
-void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerInfo& direct_sender_info) {
+void UDPServer::processChunkDiscoveryMessage(std::stringstream& message, const PeerInfo& direct_sender_info) {
     std::string file_name, chunk_requester_ip_port, chunk_requester_ip;
     int total_chunks, ttl, chunk_requester_port;
     size_t colon_pos;
@@ -139,7 +140,6 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerIn
     // Separa o IP e a porta do peer original
     colon_pos = chunk_requester_ip_port.find(':');
     chunk_requester_ip = chunk_requester_ip_port.substr(0, colon_pos);
-    //logMessage(LogType::ERROR, "stoi -> processDiscoveryMessage");
     chunk_requester_port = std::stoi(chunk_requester_ip_port.substr(colon_pos + 1));
 
     // Só manda mensagem de descoberta de mensagens que não foi o próprio peer que enviou
@@ -149,7 +149,7 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerIn
                 " do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
                 ". Resposta será enviada para o Peer " + chunk_requester_ip + ":" + std::to_string(chunk_requester_port));
 
-        // Monta um Peer Info do solicitante dos chuncks do arquivo
+        // Monta um Peer Info do solicitante dos chunks do arquivo
         PeerInfo chunk_requester_info(std::string(chunk_requester_ip), chunk_requester_port);
 
         // Verifica se possui chunks do arquivo e envia a resposta
@@ -168,7 +168,7 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerIn
  * 
  * Exibe os chunks disponíveis recebidos na mensagem de resposta.
  */
-void UDPServer::processResponseMessage(std::stringstream& message, const PeerInfo& direct_sender_info) {
+void UDPServer::processChunkResponseMessage(std::stringstream& message, const PeerInfo& direct_sender_info) {
     std::string file_name;
     int transfer_speed;
     std::vector<int> chunks_received;
@@ -201,16 +201,8 @@ void UDPServer::sendChunkDiscoveryMessage(const std::string& file_name, int tota
     bool send_message = false;
 
     for (const auto& [neighbor_ip, neighbor_port] : udpNeighbors) {
-        struct sockaddr_in neighbor_addr;
-
-        // Configura o tipo de endereço (IPv4), endereço IP e porta do vizinho para o envio da mensagem UDP.
-        neighbor_addr.sin_family = AF_INET;
-        neighbor_addr.sin_addr.s_addr = inet_addr(neighbor_ip.c_str());
-        neighbor_addr.sin_port = htons(neighbor_port);
-
-        // Envia a mensagem UDP para o vizinho especificado.
-        ssize_t bytes_sent = sendto(sockfd, message.c_str(), message.size(), 0,
-                        (struct sockaddr*)&neighbor_addr, sizeof(neighbor_addr));
+        // Usa a função sendUDPMessage para enviar a mensagem
+        ssize_t bytes_sent = sendUDPMessage(neighbor_ip, neighbor_port, message);
 
         if (bytes_sent < 0) {
             perror("Erro ao enviar mensagem UDP");
@@ -244,16 +236,8 @@ bool UDPServer::sendChunkResponseMessage(const std::string& file_name, const Pee
     if (!chunks_available.empty()) {
         std::string response_message = buildChunkResponseMessage(file_name, chunks_available);
 
-        struct sockaddr_in requester_addr{};
-
-        // Configura o tipo de endereço (IPv4), endereço IP e porta do requester dos chuncks para o envio da mensagem UDP.
-        requester_addr.sin_family = AF_INET;
-        requester_addr.sin_addr.s_addr = inet_addr(chunk_requester_info.ip.c_str());
-        requester_addr.sin_port = htons(chunk_requester_info.port);
-
-        // Envia a mensagem UDP para o requester dos chuncks.
-        ssize_t bytes_sent = sendto(sockfd, response_message.c_str(), response_message.size(), 0,
-                                    (struct sockaddr*)&requester_addr, sizeof(requester_addr));
+        // Usa a função sendUDPMessage para enviar a mensagem
+        ssize_t bytes_sent = sendUDPMessage(chunk_requester_info.ip, chunk_requester_info.port, response_message);
 
         if (bytes_sent < 0) {
             perror("Erro ao enviar resposta UDP com chunks disponíveis.");
@@ -286,21 +270,14 @@ void UDPServer::sendChunkRequestMessage(const std::string& file_name, const std:
         // Monta a mensagem REQUEST para pedir chunks específicos
         std::string request_message = buildChunkRequestMessage(file_name, chunks);
 
-        // Configura o endereço do peer (IP e porta) para o envio da mensagem UDP.
-        struct sockaddr_in peer_addr{};
-        peer_addr.sin_family = AF_INET;
-        peer_addr.sin_addr.s_addr = inet_addr(peer_ip.c_str());
-        peer_addr.sin_port = htons(peer_port);
-
-        // Envia a mensagem REQUEST para o peer
-        ssize_t bytes_sent = sendto(sockfd, request_message.c_str(), request_message.size(), 0,
-                                    (struct sockaddr*)&peer_addr, sizeof(peer_addr));
+        // Usa a função sendUDPMessage para enviar a mensagem REQUEST
+        ssize_t bytes_sent = sendUDPMessage(peer_ip, peer_port, request_message);
 
         if (bytes_sent < 0) {
             perror("Erro ao enviar mensagem UDP REQUEST de chunks");
         } else {
             logMessage(LogType::INFO, "Mensagem REQUEST enviada para " + peer_ip + ":" + std::to_string(peer_port) +
-                       " -> " + request_message.c_str());
+                       " -> " + request_message);
         }
     }
 }
@@ -328,6 +305,9 @@ std::string UDPServer::buildChunkResponseMessage(const std::string& file_name, c
     return ss.str();
 }
 
+/**
+ * @brief Monta a mensagem REQUEST para pedir chunks específicos de um arquivo.
+ */
 std::string UDPServer::buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const {
     std::stringstream ss;
     ss << "REQUEST " << file_name << " ";
@@ -339,6 +319,9 @@ std::string UDPServer::buildChunkRequestMessage(const std::string& file_name, co
     return ss.str();
 }
 
+/**
+ * @brief Timer que define o tempo para processar mensagens RESPONSE.
+ */
 void UDPServer::startTimer(const std::string& file_name) {
     std::this_thread::sleep_for(std::chrono::seconds(RESPONSE_TIMEOUT_SECONDS)); // Espera 5 segundos
 
@@ -352,4 +335,23 @@ void UDPServer::startTimer(const std::string& file_name) {
     auto chunks_by_peer = file_manager.selectPeersForChunkDownload(file_name);
 
     sendChunkRequestMessage(file_name, chunks_by_peer);
+}
+
+
+/**
+ * @brief Função auxiliar que configura o endereço IP e porta e envia uma mensagem UDP.
+ */
+ssize_t UDPServer::sendUDPMessage(const std::string& ip, int port, const std::string& message) {
+    struct sockaddr_in peer_addr{};
+
+    // Configura o tipo de endereço (IPv4), endereço IP e porta do peer para o envio da mensagem UDP.
+    peer_addr.sin_family = AF_INET;
+    peer_addr.sin_addr.s_addr = inet_addr(ip.c_str());
+    peer_addr.sin_port = htons(port);
+
+    // Envia a mensagem UDP para o peer
+    ssize_t bytes_sent = sendto(sockfd, message.c_str(), message.size(), 0,
+                                (struct sockaddr*)&peer_addr, sizeof(peer_addr));
+
+    return bytes_sent; // Retorna o número de bytes enviados ou -1 em caso de erro
 }
