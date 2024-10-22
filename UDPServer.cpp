@@ -153,12 +153,12 @@ void UDPServer::processDiscoveryMessage(std::stringstream& message, const PeerIn
         PeerInfo chunk_requester_info(std::string(chunk_requester_ip), chunk_requester_port);
 
         // Verifica se possui chunks do arquivo e envia a resposta
-        sendChunkResponse(file_name, chunk_requester_info);
+        sendChunkResponseMessage(file_name, chunk_requester_info);
 
         // Propaga a mensagem para os vizinhos se o TTL for maior que zero
         if (ttl > 0) {
             std::this_thread::sleep_for(std::chrono::seconds(1)); // Atraso de 1 segundo
-            sendDiscoveryMessage(file_name, total_chunks, ttl - 1, chunk_requester_info, true);
+            sendChunkDiscoveryMessage(file_name, total_chunks, ttl - 1, chunk_requester_info, true);
         }
     }
 }
@@ -196,8 +196,8 @@ void UDPServer::processResponseMessage(std::stringstream& message, const PeerInf
 /**
  * @brief Envia uma mensagem de descoberta para todos os vizinhos.
  */
-void UDPServer::sendDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool retransmission) {
-    std::string message = buildDiscoveryMessage(file_name, total_chunks, ttl, chunk_requester_info);
+void UDPServer::sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool retransmission) {
+    std::string message = buildChunkDiscoveryMessage(file_name, total_chunks, ttl, chunk_requester_info);
     bool send_message = false;
 
     for (const auto& [neighbor_ip, neighbor_port] : udpNeighbors) {
@@ -238,7 +238,7 @@ void UDPServer::sendDiscoveryMessage(const std::string& file_name, int total_chu
  * 
  * Verifica se o peer possui chunks do arquivo solicitado e envia uma mensagem de resposta.
  */
-bool UDPServer::sendChunkResponse(const std::string& file_name, const PeerInfo& chunk_requester_info) {
+bool UDPServer::sendChunkResponseMessage(const std::string& file_name, const PeerInfo& chunk_requester_info) {
     std::vector<int> chunks_available = file_manager.getAvailableChunks(file_name);
 
     if (!chunks_available.empty()) {
@@ -308,7 +308,7 @@ void UDPServer::sendChunkRequestMessage(const std::string& file_name, const std:
 /**
  * @brief Monta a mensagem de descoberta de um arquivo.
  */
-std::string UDPServer::buildDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) const {
+std::string UDPServer::buildChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) const {
     std::stringstream ss;
     ss << "DISCOVERY " << file_name << " " << total_chunks << " " << ttl << " " << chunk_requester_info.ip << ":" << chunk_requester_info.port;
     return ss.str();
@@ -350,4 +350,6 @@ void UDPServer::startTimer(const std::string& file_name) {
     logMessage(LogType::INFO, "Processamento de mensagens RESPONSE desativado para o arquivo: " + file_name);
 
     auto chunks_by_peer = file_manager.selectPeersForChunkDownload(file_name);
+
+    sendChunkRequestMessage(file_name, chunks_by_peer);
 }

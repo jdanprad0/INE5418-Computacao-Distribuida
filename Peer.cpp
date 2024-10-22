@@ -53,11 +53,11 @@ void Peer::searchFile(const std::string& metadata_file) {
     meta_file >> initial_ttl;
     meta_file.close();
 
-    file_manager.initializeChunkResponses(file_name, total_chunks);
+    file_manager.initializeChunkLocationInfo(file_name, total_chunks);
 
     // Monta um Peer Info
     PeerInfo original_sender_info(std::string(ip), udp_port);
 
     // Inicia o processo de descoberta do arquivo
-    udp_server.sendDiscoveryMessage(file_name, total_chunks, initial_ttl, original_sender_info);
+    udp_server.sendChunkDiscoveryMessage(file_name, total_chunks, initial_ttl, original_sender_info);
 }

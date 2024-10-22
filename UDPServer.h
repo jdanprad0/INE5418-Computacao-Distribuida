@@ -125,7 +125,7 @@ public:
      * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
      * @param retransmission Indica se a mensagem de descoberta é própria ou apenas uma retransmissão (flooding). Valor padrão é falso.
      */
-    void sendDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool retransmission = false);
+    void sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool retransmission = false);
     
     /**
      * @brief Envia uma resposta (RESPONSE) contendo os chunks disponíveis para um arquivo.
@@ -137,7 +137,7 @@ public:
      * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
      * @return Retorna true se possui chunks disponíveis, false caso contrário.
      */
-    bool sendChunkResponse(const std::string& file_name, const PeerInfo& chunk_requester_info);
+    bool sendChunkResponseMessage(const std::string& file_name, const PeerInfo& chunk_requester_info);
 
     /**
      * @brief Envia uma mensagem REQUEST para pedir chunks específicos de um arquivo a cada peer.
@@ -162,7 +162,7 @@ public:
      * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
      * @return String contendo a mensagem DISCOVERY formatada.
      */
-    std::string buildDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) const;
+    std::string buildChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) const;
 
     /**
      * @brief Constrói uma mensagem de resposta (RESPONSE) contendo os chunks disponíveis.
@@ -186,7 +186,7 @@ public:
      * @return A string contendo a mensagem REQUEST montada.
      */
     std::string UDPServer::buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const;
-    
+
     /**
      * @brief Inicia um timer que desativa o processamento de mensagens RESPONSE após RESPONSE_TIMEOUT_SECONDS segundos.
      * Este método aguarda 5 segundos e então altera o estado de processamento das mensagens
