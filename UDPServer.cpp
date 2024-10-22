@@ -186,7 +186,7 @@ void UDPServer::processResponseMessage(std::stringstream& message, const PeerInf
     }
 
     // Armazena as respostas recebidas no mapa
-    file_manager.storeChunkResponses(file_name, chunks_received, direct_sender_info.ip, direct_sender_info.port, transfer_speed);
+    file_manager.storeChunkLocationInfo(file_name, chunks_received, direct_sender_info.ip, direct_sender_info.port, transfer_speed);
 
     logMessage(LogType::RESPONSE,
                "Recebida resposta do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
@@ -276,6 +276,36 @@ bool UDPServer::sendChunkResponse(const std::string& file_name, const PeerInfo& 
 }
 
 /**
+ * @brief Envia uma mensagem REQUEST para pedir chunks específicos de um arquivo a cada peer.
+ */
+void UDPServer::sendChunkRequestMessage(const std::string& file_name, const std::unordered_map<std::string, std::pair<int, std::vector<int>>>& chunks_by_peer) {
+    for (const auto& [peer_ip, peer_info] : chunks_by_peer) {
+        int peer_port = peer_info.first;
+        const std::vector<int>& chunks = peer_info.second;
+
+        // Monta a mensagem REQUEST para pedir chunks específicos
+        std::string request_message = buildChunkRequestMessage(file_name, chunks);
+
+        // Configura o endereço do peer (IP e porta) para o envio da mensagem UDP.
+        struct sockaddr_in peer_addr{};
+        peer_addr.sin_family = AF_INET;
+        peer_addr.sin_addr.s_addr = inet_addr(peer_ip.c_str());
+        peer_addr.sin_port = htons(peer_port);
+
+        // Envia a mensagem REQUEST para o peer
+        ssize_t bytes_sent = sendto(sockfd, request_message.c_str(), request_message.size(), 0,
+                                    (struct sockaddr*)&peer_addr, sizeof(peer_addr));
+
+        if (bytes_sent < 0) {
+            perror("Erro ao enviar mensagem UDP REQUEST de chunks");
+        } else {
+            logMessage(LogType::INFO, "Mensagem REQUEST enviada para " + peer_ip + ":" + std::to_string(peer_port) +
+                       " -> " + request_message.c_str());
+        }
+    }
+}
+
+/**
  * @brief Monta a mensagem de descoberta de um arquivo.
  */
 std::string UDPServer::buildDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) const {
@@ -298,6 +328,17 @@ std::string UDPServer::buildChunkResponseMessage(const std::string& file_name, c
     return ss.str();
 }
 
+std::string UDPServer::buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const {
+    std::stringstream ss;
+    ss << "REQUEST " << file_name << " ";
+    
+    for (const int& chunk : chunks) {
+        ss << chunk << " ";
+    }
+
+    return ss.str();
+}
+
 void UDPServer::startTimer(const std::string& file_name) {
     std::this_thread::sleep_for(std::chrono::seconds(RESPONSE_TIMEOUT_SECONDS)); // Espera 5 segundos
 
@@ -307,4 +348,6 @@ void UDPServer::startTimer(const std::string& file_name) {
     }
 
     logMessage(LogType::INFO, "Processamento de mensagens RESPONSE desativado para o arquivo: " + file_name);
+
+    auto chunks_by_peer = file_manager.selectPeersForChunkDownload(file_name);
 }

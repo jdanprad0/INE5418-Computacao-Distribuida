@@ -39,7 +39,7 @@ private:
     int transfer_speed;                                                 ///< Velocidade de transferência de dados.
     int sockfd;                                                         ///< Descriptor do socket UDP utilizado para a comunicação.
     FileManager& file_manager;                                          ///< Referência ao gerenciador de arquivos (armazenamento e chunks).
-    std::vector<std::tuple<std::string, int>> udpNeighbors;             ///< Lista contendo os vizinhos diretos do peer (endereços IP e portas).
+    std::vector<std::tuple<std::string, int>> udpNeighbors;             ///< Lista contendo os vizinhos diretos do peer (endereços IP e portas UDP).
     std::map<std::string, bool> processing_active_map;                  ///< Mapa para controlar o estado de processamento de cada arquivo. Mapeia file_name para processing_active.
     std::mutex processing_mutex;                                        ///< Mutex para proteger o acesso ao mapa
 
@@ -140,6 +140,17 @@ public:
     bool sendChunkResponse(const std::string& file_name, const PeerInfo& chunk_requester_info);
 
     /**
+     * @brief Envia uma mensagem REQUEST para pedir chunks específicos de um arquivo a cada peer.
+     * 
+     * Esta função percorre o mapa chunks_by_peer e, para cada peer, envia uma mensagem UDP
+     * no formato: "REQUEST file_name chunk1 chunk2 ... chunkn" para o endereço IP e porta do peer.
+     * 
+     * @param file_name O nome do arquivo cujos chunks estão sendo solicitados.
+     * @param chunks_by_peer Mapa que associa cada peer (IP) a um par contendo a porta e os chunks que eles possuem.
+     */
+    void UDPServer::sendChunkRequestMessage(const std::string& file_name, const std::unordered_map<std::string, std::pair<int, std::vector<int>>>& chunks_by_peer);
+
+    /**
      * @brief Monta a mensagem de descoberta (DISCOVERY) para envio.
      * 
      * Constrói uma string formatada contendo as informações da mensagem DISCOVERY que será enviada 
@@ -165,6 +176,17 @@ public:
      */
     std::string buildChunkResponseMessage(const std::string& file_name, const std::vector<int>& chunks_available) const;
 
+    /**
+     * @brief Monta a mensagem REQUEST para chunks específicos de um arquivo.
+     * 
+     * Esta função cria a mensagem REQUEST no formato "REQUEST file_name chunk1 chunk2 ...".
+     * 
+     * @param file_name O nome do arquivo cujos chunks estão sendo solicitados.
+     * @param chunks Lista de IDs dos chunks que estão sendo solicitados.
+     * @return A string contendo a mensagem REQUEST montada.
+     */
+    std::string UDPServer::buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const;
+    
     /**
      * @brief Inicia um timer que desativa o processamento de mensagens RESPONSE após RESPONSE_TIMEOUT_SECONDS segundos.
      * Este método aguarda 5 segundos e então altera o estado de processamento das mensagens

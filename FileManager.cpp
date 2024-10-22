@@ -106,25 +106,53 @@ void FileManager::assembleFile(const std::string& file_name, int total_chunks) {
     std::cout << "Arquivo " << file_name << " montado com sucesso!" << "\n" << std::endl;
 }
 
-void FileManager::initializeChunkResponses(const std::string& file_name, int total_chunks) {
+void FileManager::initializeChunkLocationInfo(const std::string& file_name, int total_chunks) {
     // Verifica se já existe uma entrada para o file_name
-    if (chunk_responses.find(file_name) == chunk_responses.end()) {
-        // Inicializa a lista de chunks
-        chunk_responses[file_name].resize(total_chunks, {"", 0, 0}); // Inicializa com IP vazio, porta 0 e velocidade 0
+    if (chunk_location_info.find(file_name) == chunk_location_info.end()) {
+        // Inicializa a lista de chunks, onde cada chunk_id contém um vetor vazio de ChunkLocationInfo
+        chunk_location_info[file_name].resize(total_chunks); // Inicializa com vetores vazios para cada chunk
     }
 }
 
 /**
  * @brief Armazena informações de chunks recebidos para um arquivo específico.
  */
-void FileManager::storeChunkResponses(const std::string& file_name, const std::vector<int>& chunk_ids, const std::string& ip, int port, int transfer_speed) {
+void FileManager::storeChunkLocationInfo(const std::string& file_name, const std::vector<int>& chunk_ids, const std::string& ip, int port, int transfer_speed) {
+    std::lock_guard<std::mutex> lock(mapMutex); // Bloqueia o acesso ao mapa para evitar condições de corrida
+
     for (const int chunk_id : chunk_ids) {
-        // Verifica se o chunk_id está dentro do intervalo
-        if (static_cast<size_t>(chunk_id) < chunk_responses[file_name].size()) {
-            std::lock_guard<std::mutex> lock(mapMutex); // Bloqueia o acesso ao mapa apenas durante a atualização
-            chunk_responses[file_name][chunk_id] = {ip, port, transfer_speed};
+        // Verifica se o chunk_id está dentro do intervalo (tamanho da estrutura)
+        if (static_cast<size_t>(chunk_id) < chunk_location_info[file_name].size()) {
+            // Adiciona o ChunkLocationInfo à lista de peers que possuem este chunk_id
+            chunk_location_info[file_name][chunk_id].emplace_back(ip, port, transfer_speed);
         } else {
             logMessage(LogType::ERROR, "chunk_id " + std::to_string(chunk_id) + " está fora do intervalo para o arquivo: " + file_name);
         }
     }
+}
+
+/**
+ * @brief Seleciona os peers de onde os chunks serão baixados.
+ */
+std::unordered_map<std::string, std::pair<int, std::vector<int>>> FileManager::selectPeersForChunkDownload(const std::string& file_name) {
+    std::unordered_map<std::string, std::pair<int, std::vector<int>>> chunks_by_peer;
+
+    std::lock_guard<std::mutex> lock(mapMutex); // Protege o acesso ao mapa de chunk_location_info
+    std::size_t total_chunks = chunk_location_info[file_name].size();
+
+    // Itera pelos chunks que precisam ser baixados
+    for (int chunk = 0; chunk < total_chunks; ++chunk) {
+        // Verifica se há respostas para o arquivo atual
+        if (total_chunks > chunk) {
+            const std::vector<ChunkLocationInfo>& responses = chunk_location_info[file_name][chunk];
+
+            // Se houver ao menos uma resposta, selecione o primeiro peer
+            // Fazer o critério de seleção aqui
+            if (!responses.empty()) {
+                const ChunkLocationInfo& selected_peer = responses[0]; // Escolhe o primeiro peer da lista
+                chunks_by_peer[selected_peer.ip] = std::make_pair(selected_peer.port, std::vector<int>{chunk});
+            }
+        }
+    }
+    return chunks_by_peer;
 }

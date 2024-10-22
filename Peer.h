@@ -19,7 +19,7 @@ private:
     int udp_port;                                                       ///< Porta UDP para descoberta de arquivos.
     int tcp_port;                                                       ///< Porta TCP para transferência de chunks.
     int transfer_speed;                                                 ///< Capacidade de transferência em bytes/s.
-    std::vector<std::tuple<std::string, int>> neighbors;                ///< Informações sobre sua vizinhança.
+    std::vector<std::tuple<std::string, int>> neighbors;                ///< Informações sobre sua vizinhança. Vetor de tuplos (endereço IP, porta UDP).
     FileManager file_manager;                                           ///< Gerenciador de arquivos do peer.
     UDPServer udp_server;                                               ///< Servidor UDP para descoberta de arquivos.
     TCPServer tcp_server;                                               ///< Servidor TCP para transferência de chunks.
