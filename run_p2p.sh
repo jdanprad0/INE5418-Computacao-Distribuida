@@ -11,7 +11,7 @@ make
 config_file="src/config.txt"
 
 # Obtém o IP público da máquina
-public_ip=$(curl -s ifconfig.me)
+public_ip=$(curl -4 -s ifconfig.me)
 
 # Inicializa a variável que irá armazenar o número correspondente ao IP
 index=""
