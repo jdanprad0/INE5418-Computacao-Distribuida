@@ -1,1 +1,1 @@
-# INE5418-05208-20242-Computacao-Distribuida
+# INE5418-20242-Computacao-Distribuida
