@@ -12,24 +12,28 @@ std::string trim(const std::string& str) {
  * @brief Função auxiliar para formatar e exibir mensagens de log de forma consistente, com cores.
  */
 void logMessage(LogType type, const std::string& message) {
-    switch (type) {
+    std::cout << std::endl << std::flush << RESET;
+
+   switch (type) {
         case LogType::ERROR:
-            std::cout << RED << "[ERROR] " << message << RESET << std::endl << std::flush;
+            std::cout << RED << "[ERROR] " << message;
             break;
         case LogType::INFO:
-            std::cout << BLUE << "[INFO] " << message << RESET << std::endl << std::flush;
+            std::cout << BLUE << "[INFO] " << message;
             break;
         case LogType::DISCOVERY_RECEIVED:
-            std::cout << YELLOW << "[DISCOVERY_RECEIVED] " << message << RESET << std::endl << std::flush;
+            std::cout << YELLOW << "[DISCOVERY_RECEIVED] " << message;
             break;
         case LogType::DISCOVERY_SENT:
-            std::cout << MAGENTA << "[DISCOVERY_SENT] " << message << RESET << std::endl << std::flush;
+            std::cout << MAGENTA << "[DISCOVERY_SENT] " << message;
             break;
         case LogType::RESPONSE:
-            std::cout << GREEN << "[RESPONSE] " << message << RESET << std::endl << std::flush;
+            std::cout << GREEN << "[RESPONSE] " << message;
             break;
         default:
-            std::cout << CIANO << "[OTHER] " << message << RESET << std::endl << std::flush;
+            std::cout << CIANO << "[OTHER] " << message;
             break;
     }
+
+    std::cout << std::flush;
 }
