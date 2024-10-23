@@ -1,5 +1,8 @@
 #include "Utils.h"
 #include <regex>
+#include <mutex>
+
+std::mutex cout_mutex;
 
 /**
  * @brief Remove espaços em branco ao redor de uma string.
@@ -12,28 +15,28 @@ std::string trim(const std::string& str) {
  * @brief Função auxiliar para formatar e exibir mensagens de log de forma consistente, com cores.
  */
 void logMessage(LogType type, const std::string& message) {
-    std::cout << std::endl << std::flush << RESET;
-
-   switch (type) {
-        case LogType::ERROR:
-            std::cout << RED << "[ERROR] " << message;
-            break;
-        case LogType::INFO:
-            std::cout << BLUE << "[INFO] " << message;
-            break;
-        case LogType::DISCOVERY_RECEIVED:
-            std::cout << YELLOW << "[DISCOVERY_RECEIVED] " << message;
-            break;
-        case LogType::DISCOVERY_SENT:
-            std::cout << MAGENTA << "[DISCOVERY_SENT] " << message;
-            break;
-        case LogType::RESPONSE:
-            std::cout << GREEN << "[RESPONSE] " << message;
-            break;
-        default:
-            std::cout << CIANO << "[OTHER] " << message;
-            break;
+    {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        switch (type) {
+            case LogType::ERROR:
+                std::cout << RED << "[ERROR] " << message;
+                break;
+            case LogType::INFO:
+                std::cout << BLUE << "[INFO] " << message;
+                break;
+            case LogType::DISCOVERY_RECEIVED:
+                std::cout << YELLOW << "[DISCOVERY_RECEIVED] " << message;
+                break;
+            case LogType::DISCOVERY_SENT:
+                std::cout << MAGENTA << "[DISCOVERY_SENT] " << message;
+                break;
+            case LogType::RESPONSE:
+                std::cout << GREEN << "[RESPONSE] " << message;
+                break;
+            default:
+                std::cout << CIANO << "[OTHER] " << message;
+                break;
+        }
+        std::cout << RESET << std::endl << std::flush;
     }
-
-    std::cout << std::flush;
 }
