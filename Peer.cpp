@@ -27,7 +27,7 @@ void Peer::start() {
     std::thread udp_thread(&UDPServer::run, &udp_server);
 
     // Inicia o servidor TCP em uma thread separada (descomentado para funcionalidade futura)
-    //std::thread tcp_thread(&TCPServer::run, &tcp_server);
+    std::thread tcp_thread(&TCPServer::run, &tcp_server);
 
     // Espera a thread do servidor UDP (join), comentado para o servidor TCP
     udp_thread.join();
