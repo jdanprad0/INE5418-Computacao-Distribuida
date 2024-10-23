@@ -51,8 +51,6 @@ void UDPServer::run() {
 
     initializeUDPSocket();
 
-    logMessage(LogType::INFO, "Servidor UDP em execução... Aguardando mensagens...");
-
     while (true) {
         // Recebe a mensagem UDP
         ssize_t bytes_received = recvfrom(sockfd, buffer, sizeof(buffer), 0,
@@ -357,5 +355,4 @@ void UDPServer::setUDPNeighbors(const std::vector<std::tuple<std::string, int>>&
 
         udpNeighbors.emplace_back(neighbor_ip, neighbor_port);
     }
-    logMessage(LogType::INFO, "Vizinhos configurados para o servidor UDP.");
 }
