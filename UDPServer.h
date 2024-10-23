@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <mutex>
 #include "FileManager.h"
+#include "TCPServer.h"
 
 /**
  * @brief Definição da struct PeerInfo.
@@ -33,15 +34,16 @@ struct PeerInfo {
  */
 class UDPServer {
 private:
-    std::string ip;                                                     ///< Endereço IP do peer atual.
-    int port;                                                           ///< Porta UDP que o peer está utilizando para a comunicação.
-    int peer_id;                                                        ///< Identificador único (ID) do peer.
-    int transfer_speed;                                                 ///< Velocidade de transferência de dados.
-    int sockfd;                                                         ///< Descriptor do socket UDP utilizado para a comunicação.
-    FileManager& file_manager;                                          ///< Referência ao gerenciador de arquivos (armazenamento e chunks).
-    std::vector<std::tuple<std::string, int>> udpNeighbors;             ///< Lista contendo os vizinhos diretos do peer (endereços IP e portas UDP).
-    std::map<std::string, bool> processing_active_map;                  ///< Mapa para controlar o estado de processamento de cada arquivo. Mapeia file_name para processing_active.
-    std::mutex processing_mutex;                                        ///< Mutex para proteger o acesso ao mapa
+    const std::string ip;                                   ///< Endereço IP do peer atual (const porque não muda após inicialização).
+    const int port;                                         ///< Porta UDP que o peer está utilizando para a comunicação (const porque não muda após inicialização).
+    const int peer_id;                                      ///< Identificador único (ID) do peer (const porque não muda após inicialização).
+    const int transfer_speed;                               ///< Velocidade de transferência de dados (const porque não muda após inicialização).
+    int sockfd;                                             ///< Descriptor do socket UDP utilizado para a comunicação (não const porque pode ser alterado).
+    std::vector<std::tuple<std::string, int>> udpNeighbors; ///< Lista contendo os vizinhos diretos do peer (endereços IP e portas UDP).
+    std::map<std::string, bool> processing_active_map;      ///< Mapa para controlar o estado de processamento de cada arquivo. Mapeia file_name para processing_active.
+    std::mutex processing_mutex;                            ///< Mutex para proteger o acesso ao mapa
+    FileManager& file_manager;                              ///< Referência ao gerenciador de arquivos (armazenamento e chunks).
+    TCPServer& tcp_server;                                  ///< Referência ao servidor TCP.
 
 public:
     /**
@@ -56,18 +58,18 @@ public:
      * @param peer_id ID do peer na rede P2P.
      * @param transfer_speed Velocidade de transferência de dados do peer na rede P2P.
      * @param file_manager Referência ao gerenciador de arquivos do peer.
+     * @param tcp_server Referência ao servidor TCP do peer.
      */
-    UDPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager);
+    UDPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager, TCPServer& tcp_server);
 
     /**
-     * @brief Define os vizinhos para o peer atual.
+     * @brief Função para criar e configurar o socket UDP.
      * 
-     * Esta função é usada para configurar os peers vizinhos com quem este peer 
-     * pode se comunicar diretamente via UDP.
+     * Esta função cria um socket UDP, configura o endereço e vincula o socket à porta especificada.
      * 
-     * @param neighbors Vizinhos do peer (IP e Porta).
+     * @return Descriptor do socket criado.
      */
-    void setUDPNeighbors(const std::vector<std::tuple<std::string, int>>& neighbors);
+    int initializeUDPSocket();
 
     /**
      * @brief Inicia o servidor UDP, permitindo que o peer receba e envie mensagens.
@@ -123,9 +125,8 @@ public:
      * @param total_chunks Número total de chunks que compõem o arquivo.
      * @param ttl Time-to-live para limitar o alcance do flooding.
      * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
-     * @param retransmission Indica se a mensagem de descoberta é própria ou apenas uma retransmissão (flooding). Valor padrão é falso.
      */
-    void sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool retransmission = false);
+    void sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info);
     
     /**
      * @brief Envia uma resposta (RESPONSE) contendo os chunks disponíveis para um arquivo.
@@ -148,7 +149,7 @@ public:
      * @param file_name O nome do arquivo cujos chunks estão sendo solicitados.
      * @param chunks_by_peer Mapa que associa cada peer (IP) a um par contendo a porta e os chunks que eles possuem.
      */
-    void sendChunkRequestMessage(const std::string& file_name, const std::unordered_map<std::string, std::pair<int, std::vector<int>>>& chunks_by_peer);
+    void sendChunkRequestMessage(const std::string& file_name);
 
     /**
      * @brief Monta a mensagem de descoberta (DISCOVERY) para envio.
@@ -188,13 +189,11 @@ public:
     std::string buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const;
 
     /**
-     * @brief Inicia um timer que desativa o processamento de mensagens RESPONSE após RESPONSE_TIMEOUT_SECONDS segundos.
-     * Este método aguarda 5 segundos e então altera o estado de processamento das mensagens
-     * RESPONSE para inativo, utilizando um mutex para garantir a segurança em ambientes de 
-     * múltiplas threads.
-     * @param file_name Nome do arquivo para o qual o timer está sendo iniciado.
+     * @brief Espera por um tempo determinado pelas respostas e então desativa o processamento de respostas.
+     * 
+     * @param file_name Nome do arquivo para o qual as respostas estão sendo aguardadas.
      */
-    void startTimer(const std::string& file_name);
+    void waitForResponses(const std::string& file_name);
 
     /**
      * @brief Função auxiliar que configura o endereço IP e porta e envia uma mensagem UDP.
@@ -207,6 +206,16 @@ public:
      * @return O número de bytes enviados, ou um valor negativo em caso de erro.
      */
     ssize_t sendUDPMessage(const std::string& ip, int port, const std::string& message);
+
+    /**
+     * @brief Define os vizinhos para o peer atual.
+     * 
+     * Esta função é usada para configurar os peers vizinhos com quem este peer 
+     * pode se comunicar diretamente via UDP.
+     * 
+     * @param neighbors Vizinhos do peer (IP e Porta).
+     */
+    void setUDPNeighbors(const std::vector<std::tuple<std::string, int>>& neighbors);
 };
 
 #endif // UDPSERVER_H
