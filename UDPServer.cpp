@@ -339,9 +339,7 @@ void UDPServer::waitForResponses(const std::string& file_name) {
 /**
  * @brief Função auxiliar que configura o endereço IP e porta e envia uma mensagem UDP.
  */
-ssize_t UDPServer::sendUDPMessage(const std::string& ip, int port, const std::string& message) {
-    struct sockaddr_in peer_addr{};
-    
+ssize_t UDPServer::sendUDPMessage(const std::string& ip, int port, const std::string& message) {    
     // Estrutura para armazenar informações do endereço do socket
     struct sockaddr_in peer_addr = createSockAddr(ip.c_str(), port);
 

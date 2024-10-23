@@ -13,8 +13,8 @@
 /**
  * @brief Construtor da classe TCPServer.
  */
-TCPServer::TCPServer(const std::string& ip, int port, int speed, FileManager& file_manager)
-    : ip(ip), port(port), transfer_speed(speed), file_manager(file_manager) {
+TCPServer::TCPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager)
+    : ip(ip), port(port), peer_id(peer_id), transfer_speed(transfer_speed), file_manager(file_manager) {
     
     // Cria um socket TCP para escuta
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -92,8 +92,8 @@ void TCPServer::receiveChunk(int client_sock) {
         file_buffer = new char[transfer_speed];  // Buffer dinâmico com o tamanho da velocidade
 
         // Abre o arquivo em modo binário para escrita
-        //! Salva o arquivo na pasta (Ta errado)
-        std::ofstream chunk_file(file_manager.getChunkPath(file_name, chunk_number), std::ios::binary);
+        std::string directory = Constants::BASE_PATH + std::to_string(peer_id);  // Corrigido para usar peer_id diretamente
+        std::ofstream chunk_file(directory, std::ios::binary);
 
         if (!chunk_file.is_open()) {
             logMessage(LogType::ERROR, "Não foi possível criar o arquivo para o chunk.");

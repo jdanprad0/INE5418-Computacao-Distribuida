@@ -10,7 +10,7 @@
 Peer::Peer(int id, const std::string& ip, int udp_port, int tcp_port, int transfer_speed, const std::vector<std::tuple<std::string, int>> neighbors)
     : id(id), ip(ip), udp_port(udp_port), tcp_port(tcp_port), transfer_speed(transfer_speed), neighbors(neighbors),
       file_manager(std::to_string(id)),
-      tcp_server(ip, tcp_port, transfer_speed, file_manager),
+      tcp_server(ip, tcp_port, id, transfer_speed, file_manager),
       udp_server(ip, udp_port, id, transfer_speed, file_manager, tcp_server) {}
 
 /**

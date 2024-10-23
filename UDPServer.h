@@ -23,10 +23,10 @@
  */
 class UDPServer {
 private:
-    const std::string ip;                                   ///< Endereço IP do peer atual (const porque não muda após inicialização).
-    const int port;                                         ///< Porta UDP que o peer está utilizando para a comunicação (const porque não muda após inicialização).
-    const int peer_id;                                      ///< Identificador único (ID) do peer (const porque não muda após inicialização).
-    const int transfer_speed;                               ///< Velocidade de transferência de dados (const porque não muda após inicialização).
+    const std::string ip;                                   ///< Endereço IP do peer atual file_manager.
+    const int port;                                         ///< Porta UDP que o peer está utilizando para a comunicação file_manager.
+    const int peer_id;                                      ///< Identificador único (ID) do peer file_manager.
+    const int transfer_speed;                               ///< Velocidade de transferência de dados file_manager.
     int sockfd;                                             ///< Descriptor do socket UDP utilizado para a comunicação (não const porque pode ser alterado).
     std::vector<std::tuple<std::string, int>> udpNeighbors; ///< Lista contendo os vizinhos diretos do peer (endereços IP e portas UDP).
     std::map<std::string, bool> processing_active_map;      ///< Mapa para controlar o estado de processamento de cada arquivo. Mapeia file_name para processing_active.
@@ -114,7 +114,7 @@ public:
      * @param message Stream com os dados da mensagem de requisição.
      * @param direct_sender_info Informações sobre o peer que enviou a requisição, incluindo seu endereço IP e porta UDP.
      */
-    void UDPServer::processChunkRequestMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
+    void processChunkRequestMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
 
     /**
      * @brief Envia uma mensagem de descoberta (DISCOVERY) para todos os vizinhos.

@@ -3,6 +3,7 @@
 
 #include "FileManager.h"
 #include "Utils.h"
+#include "Constants.h"
 #include <string>
 
 /**
@@ -29,6 +30,7 @@ class TCPServer {
 private:
     const std::string ip;                                   ///< Endereço IP do peer.
     const int port;                                         ///< Porta TCP para transferência.
+    const int peer_id;                                      ///< Identificador único (ID) do peer.
     const int transfer_speed;                               ///< Capacidade de transferência.
     int sockfd;                                             ///< Socket TCP.
     FileManager& file_manager;                              ///< Referência ao gerenciador de arquivos.
@@ -42,10 +44,11 @@ public:
      * 
      * @param ip Endereço IP do peer.
      * @param port Porta TCP para transferência.
-     * @param speed Capacidade de transferência.
+     * @param peer_id ID do peer na rede P2P.
+     * @param transfer_speed Capacidade de transferência.
      * @param file_manager Referência ao gerenciador de arquivos para acessar os chunks disponíveis.
      */
-    TCPServer(const std::string& ip, int port, int speed, FileManager& file_manager);
+    TCPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager);
 
     /**
      * @brief Inicia o servidor TCP para aceitar conexões.
