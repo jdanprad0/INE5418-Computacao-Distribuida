@@ -27,10 +27,10 @@ UDPServer::UDPServer(const std::string& ip, int port, int peer_id, int transfer_
     }
 
     // Configuração do endereço para o bind
-    struct sockaddr_in addr;               // Declara a estrutura para armazenar o endereço do socket.
-    addr.sin_family = AF_INET;             // Define o tipo de endereço como IPv4.
-    addr.sin_addr.s_addr = htonl(INADDR_ANY); // Configura para aceitar conexões de qualquer endereço IP.
-    addr.sin_port = htons(port);           // Converte e define a porta no formato de rede.
+    struct sockaddr_in addr;                    // Declara a estrutura para armazenar o endereço do socket.
+    addr.sin_family = AF_INET;                  // Define o tipo de endereço como IPv4.
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);   // Configura para aceitar conexões de qualquer endereço IP.
+    addr.sin_port = htons(port);                // Converte e define a porta no formato de rede.
 
 
     // Vincula o socket à porta especificada

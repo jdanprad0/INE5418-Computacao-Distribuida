@@ -148,7 +148,7 @@ public:
      * @param file_name O nome do arquivo cujos chunks estão sendo solicitados.
      * @param chunks_by_peer Mapa que associa cada peer (IP) a um par contendo a porta e os chunks que eles possuem.
      */
-    void UDPServer::sendChunkRequestMessage(const std::string& file_name, const std::unordered_map<std::string, std::pair<int, std::vector<int>>>& chunks_by_peer);
+    void sendChunkRequestMessage(const std::string& file_name, const std::unordered_map<std::string, std::pair<int, std::vector<int>>>& chunks_by_peer);
 
     /**
      * @brief Monta a mensagem de descoberta (DISCOVERY) para envio.
@@ -185,7 +185,7 @@ public:
      * @param chunks Lista de IDs dos chunks que estão sendo solicitados.
      * @return A string contendo a mensagem REQUEST montada.
      */
-    std::string UDPServer::buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const;
+    std::string buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const;
 
     /**
      * @brief Inicia um timer que desativa o processamento de mensagens RESPONSE após RESPONSE_TIMEOUT_SECONDS segundos.
@@ -206,7 +206,7 @@ public:
      * @param message A mensagem que será enviada.
      * @return O número de bytes enviados, ou um valor negativo em caso de erro.
      */
-    ssize_t UDPServer::sendUDPMessage(const std::string& ip, int port, const std::string& message);
+    ssize_t sendUDPMessage(const std::string& ip, int port, const std::string& message);
 };
 
 #endif // UDPSERVER_H

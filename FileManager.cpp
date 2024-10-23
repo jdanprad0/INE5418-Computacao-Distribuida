@@ -141,16 +141,16 @@ std::unordered_map<std::string, std::pair<int, std::vector<int>>> FileManager::s
     std::size_t total_chunks = chunk_location_info[file_name].size();
 
     // Itera pelos chunks que precisam ser baixados
-    for (int chunk = 0; chunk < total_chunks; ++chunk) {
+    for (std::size_t chunk = 0; chunk < total_chunks; ++chunk) {
         // Verifica se há respostas para o arquivo atual
-        if (total_chunks > chunk) {
+        if (chunk < total_chunks) {
             const std::vector<ChunkLocationInfo>& responses = chunk_location_info[file_name][chunk];
 
             // Se houver ao menos uma resposta, selecione o primeiro peer
             // Fazer o critério de seleção aqui
             if (!responses.empty()) {
                 const ChunkLocationInfo& selected_peer = responses[0]; // Escolhe o primeiro peer da lista
-                chunks_by_peer[selected_peer.ip] = std::make_pair(selected_peer.port, std::vector<int>{chunk});
+                chunks_by_peer[selected_peer.ip] = std::make_pair(selected_peer.port, std::vector<int>{static_cast<int>(chunk)});
             }
         }
     }

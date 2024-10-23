@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 
     // Mata todos os processos nas portas que serão utilizadas (6000 a 6025 para UDP e 7000 a 7025 para TCP)
     logMessage(LogType::INFO, "Matando processos nas portas 6000-6025 e 7000-7025...");
-    system("lsof -ti :6000-6025,7000-7025 | xargs -r kill -9 2>/dev/null");
+    //system("lsof -ti :6000-6025,7000-7025 | xargs -r kill -9 2>/dev/null");
 
     // Carrega as configurações
     auto topology = ConfigManager::loadTopology("topologia.txt");
