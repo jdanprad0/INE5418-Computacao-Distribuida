@@ -60,7 +60,7 @@ void TCPServer::run() {
  */
 void TCPServer::receiveChunk(int client_sockfd) {
     char* file_buffer = nullptr; // Inicializa um buffer para armazenar o chunk recebido
-    size_t bytes_received;
+    size_t bytes_received; // Armazena o número real de bytes recebidos ao fazer a transferência do chunk
 
     // Recebe a informação que vai começar a transferência (esperando algo como "PUT <file_name> <chunk_id> <transfer_speed>")
     char request_buffer[256];
@@ -76,7 +76,7 @@ void TCPServer::receiveChunk(int client_sockfd) {
         return;
     }
 
-    request_buffer[request_size] = '\0';  // Finaliza a string recebida
+    request_buffer[request_size] = '\0';  // Finaliza a string recebida (mensagem de controle)
     std::string request(request_buffer);
 
     std::stringstream ss(request);
@@ -106,11 +106,10 @@ void TCPServer::receiveChunk(int client_sockfd) {
 
     if (command == "PUT") {
         // Cria um buffer com o tamanho da velocidade de transferência do cliente
-        file_buffer = new char[transfer_speed];  // Buffer dinâmico com o tamanho da velocidade
+        file_buffer = new char[transfer_speed];
 
         // Abre o arquivo em modo binário para escrita
-        std::string directory = Constants::BASE_PATH + std::to_string(peer_id);  // Corrigido para usar peer_id diretamente
-        std::ofstream chunk_file(directory, std::ios::binary);
+        std::ofstream chunk_file(file_manager.getChunkPath(file_name, chunk_id), std::ios::binary);
 
         if (!chunk_file.is_open()) {
             logMessage(LogType::ERROR, "Não foi possível criar o arquivo para o chunk " + std::to_string(chunk_id));
@@ -123,6 +122,7 @@ void TCPServer::receiveChunk(int client_sockfd) {
         while ((bytes_received = recv(client_sockfd, file_buffer, transfer_speed, 0)) > 0) {
             chunk_file.write(file_buffer, bytes_received);  // Grava os bytes recebidos no arquivo
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));  // Espera 1 segundo para respeitar a velocidade de transferência
+            logMessage(LogType::INFO, "Recebido " + std::to_string(bytes_received) + " bytes do chunk " + std::to_string(chunk_id) + " do arquivo " + file_name + " de " + client_ip + ":" + std::to_string(client_port));
         }
 
         if (bytes_received < 0) {
@@ -152,10 +152,10 @@ void TCPServer::sendChunk(const std::string& file_name, const std::vector<int>& 
         return; // Retorna se houver erro na criação do socket
     }
 
-    // Estrutura para armazenar informações do endereço do socket
+    // Estrutura para armazenar informações do endereço do destinatário
     struct sockaddr_in destination_addr = createSockAddr(destination_info.ip.c_str(), destination_info.port + 1000);
 
-    // Conecta ao peer solicitante
+    // Tenta se conectar ao destinatário
     if (connect(client_sockfd, (struct sockaddr*)&destination_addr, sizeof(destination_addr)) < 0) {
         perror("Erro ao conectar ao peer.");
         close(client_sockfd);
@@ -185,7 +185,7 @@ void TCPServer::sendChunk(const std::string& file_name, const std::vector<int>& 
             continue; // Se não encontrar o chunk, continua para o próximo
         }
 
-        // Envia o chunk em blocos, respeitando a velocidade de transferência
+        // Envia o chunk em blocos, respeitando a minha velocidade de transferência
         while (chunk_file) {
             // Lê uma quantidade de bytes do chunk
             chunk_file.read(file_buffer, transfer_speed);  // Lê até o tamanho da minha velocidade
@@ -197,9 +197,11 @@ void TCPServer::sendChunk(const std::string& file_name, const std::vector<int>& 
             ssize_t bytes_sent = send(client_sockfd, file_buffer, bytes_to_send, 0);
             if (bytes_sent < 0) {
                 perror("Erro ao enviar o chunk");;
-                logMessage(LogType::ERROR, "O erro ocorreu ao tentar enviar o chunk " + std::to_string(chunk_id));
+                logMessage(LogType::ERROR, "Um erro ocorreu ao tentar enviar o chunk " + std::to_string(chunk_id));
                 break; // Interrompe se houver um erro no envio
             }
+
+            logMessage(LogType::INFO, "Enviado " + std::to_string(bytes_sent) + " do chunk " + std::to_string(chunk_id) + " do arquivo " + file_name + " para o IP " + destination_info.ip.c_str() + ":" + std::to_string(destination_info.port + 1000));
 
             // Espera por 1 segundo para dar o efeito de velocidade
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
