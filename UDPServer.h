@@ -1,6 +1,10 @@
 #ifndef UDPSERVER_H
 #define UDPSERVER_H
 
+#include "FileManager.h"
+#include "TCPServer.h"
+#include "Utils.h"
+#include "Constants.h"
 #include <string>
 #include <map>
 #include <vector>
@@ -8,8 +12,6 @@
 #include <tuple>
 #include <unordered_map>
 #include <mutex>
-#include "FileManager.h"
-#include "TCPServer.h"
 
 /**
  * @brief Definição da struct PeerInfo.
@@ -115,6 +117,17 @@ public:
      * @param direct_sender_info Informações sobre o peer que enviou diretamente a mensagem, incluindo seu endereço IP e porta UDP.
      */
     void processChunkResponseMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
+
+    /**
+     * @brief Processa a requisição de chunks recebida de outro peer.
+     * 
+     * Este método analisa a mensagem de requisição de chunks e inicia a transferência
+     * dos chunks solicitados usando o servidor TCP associado.
+     * 
+     * @param message Stream com os dados da mensagem de requisição.
+     * @param direct_sender_info Informações sobre o peer que enviou a requisição, incluindo seu endereço IP e porta UDP.
+     */
+    void UDPServer::processChunkRequestMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
 
     /**
      * @brief Envia uma mensagem de descoberta (DISCOVERY) para todos os vizinhos.

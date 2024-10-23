@@ -13,20 +13,22 @@
 /**
  * @brief Construtor da classe TCPServer.
  */
-TCPServer::TCPServer(const std::string& ip, int port, int speed, FileManager& fileManager)
-    : ip(ip), port(port), speed(speed), fileManager(fileManager) {
+TCPServer::TCPServer(const std::string& ip, int port, int speed, FileManager& file_manager)
+    : ip(ip), port(port), speed(speed), file_manager(file_manager) {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr{};
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    addr.sin_addr.s_addr = inet_addr(ip.c_str()); // Usa o IP do peer
     addr.sin_port = htons(port);
 
     if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("Erro ao fazer bind no socket TCP");
+        exit(EXIT_FAILURE);
     }
 
     if (listen(sockfd, 5) < 0) {
         perror("Erro ao escutar no socket TCP");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -52,15 +54,16 @@ void TCPServer::run() {
  */
 void TCPServer::transferChunk(int client_sock) {
     // Cria um buffer com o tamanho da velocidade (limite de transferência em bytes por segundo)
-    char *file_buffer = new char[speed];  // Buffer dinâmico com o tamanho da velocidade
+    char* file_buffer = new char[speed];  // Buffer dinâmico com o tamanho da velocidade
     size_t bytes_read;
 
     // Recebe o pedido do cliente (esperando algo como "GET <file_name> <chunk_number>")
     char request_buffer[256];
     ssize_t bytes_received = recv(client_sock, request_buffer, sizeof(request_buffer), 0);
+    
     if (bytes_received <= 0) {
         if (bytes_received == 0) {
-            std::cout << "Conexão fechada pelo cliente." << "\n" << std::endl;
+            std::cout << "Conexão fechada pelo cliente." << std::endl;
         } else {
             perror("Erro ao receber dados via TCP");
         }
@@ -80,7 +83,7 @@ void TCPServer::transferChunk(int client_sock) {
 
     if (command == "GET") {
         // Obtém o caminho para o chunk solicitado
-        std::string chunk_path = fileManager.getChunkPath(file_name, chunk_number);
+        std::string chunk_path = file_manager.getChunkPath(file_name, chunk_number);
         std::ifstream chunk_file(chunk_path, std::ios::binary);  // Abre o arquivo em modo binário
 
         if (!chunk_file.is_open()) {
@@ -103,4 +106,3 @@ void TCPServer::transferChunk(int client_sock) {
     close(client_sock);
     delete[] file_buffer;  // Libera a memória alocada para o buffer
 }
-

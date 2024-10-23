@@ -1,5 +1,4 @@
 #include "ConfigManager.h"
-#include "Utils.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -7,81 +6,88 @@
 /**
  * @brief Carrega a topologia da rede a partir do arquivo.
  */
-std::map<int, std::vector<int>> ConfigManager::loadTopology(const std::string& file_name) {
-    std::string file_path = "./src/" + file_name;
-    std::ifstream file(file_path);
-    std::map<int, std::vector<int>> topology;
+std::map<int, std::vector<int>> ConfigManager::loadTopology() {
+    std::string file_path = Constants::TOPOLOGY_PATH;
+    std::ifstream file(file_path); // Abre o arquivo para leitura
+    std::map<int, std::vector<int>> topology; // Mapa para armazenar a topologia
 
+    // Verifica se o arquivo foi aberto corretamente
     if (!file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo de topologia." << std::endl;
-        return topology;
+        return topology; // Retorna um mapa vazio em caso de erro
     }
 
     std::string line;
+    // Lê cada linha do arquivo
     while (std::getline(file, line)) {
-        std::stringstream ss(line);
+        std::stringstream ss(line); // Cria um fluxo de string para processamento
         int node_id;
-        char colon;
+        char colon; // Variável para capturar o caractere ':' no formato
+
+        // Lê o ID do nodo e o caractere ':'
         ss >> node_id >> colon;
 
-        std::vector<int> neighbors;
+        std::vector<int> neighbors; // Vetor para armazenar os vizinhos
         std::string neighbor_list;
+        
+        // Lê a lista de vizinhos após o caractere ':'
         std::getline(ss, neighbor_list);
-        std::stringstream ss_neighbors(neighbor_list);
+        std::stringstream ss_neighbors(neighbor_list); // Fluxo para processar os vizinhos
 
         std::string neighbor;
+        // Lê cada vizinho separado por vírgula
         while (std::getline(ss_neighbors, neighbor, ',')) {
-            int neighbor_id = std::stoi(neighbor);
-            neighbors.push_back(neighbor_id);
+            int neighbor_id = std::stoi(neighbor); // Converte o vizinho para inteiro
+            neighbors.push_back(neighbor_id); // Adiciona ao vetor de vizinhos
         }
 
-        topology[node_id] = neighbors;
+        topology[node_id] = neighbors; // Mapeia o nodo aos seus vizinhos
     }
 
-    file.close();
-    return topology;
+    file.close(); // Fecha o arquivo após a leitura
+    return topology; // Retorna o mapa de topologia
 }
 
 /**
  * @brief Carrega as configurações dos peers a partir do arquivo.
  */
-std::map<int, std::tuple<std::string, int, int>> ConfigManager::loadConfig(const std::string& file_name) {
-    std::string file_path = "./src/" + file_name;
-    std::ifstream file(file_path);
-    std::map<int, std::tuple<std::string, int, int>> config;
+std::map<int, std::tuple<std::string, int, int>> ConfigManager::loadConfig() {
+    std::string file_path = Constants::CONFIG_PATH;
+    std::ifstream file(file_path); // Abre o arquivo para leitura
+    std::map<int, std::tuple<std::string, int, int>> config; // Mapa para armazenar as configurações
 
+    // Verifica se o arquivo foi aberto corretamente
     if (!file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo de configuração." << std::endl;
-        return config;
+        return config; // Retorna um mapa vazio em caso de erro
     }
 
     std::string line;
+    // Lê cada linha do arquivo
     while (std::getline(file, line)) {
-        std::stringstream ss(line);
+        std::stringstream ss(line); // Cria um fluxo de string para processamento
         int node_id;
-        char colon, comma2;
+        char colon, comma2; // Variáveis para capturar ':' e ','
         std::string ip;
         int udp_port;
         int speed;
 
-        // Primeiro captura o node_id e o colon (:)
+        // Lê o ID do nodo e o caractere ':'
         ss >> node_id >> colon;
 
-        // Depois captura o IP, usando std::getline para ignorar a vírgula após o IP
-        std::getline(ss, ip, ',');
+        // Captura o IP e ignora a vírgula
+        std::getline(ss, ip, ','); 
+        ip = trim(ip); // Remove espaços em branco do IP
 
-         // Remove espaços em branco do IP
-        ip = trim(ip);
-
-        // Captura o restante dos campos (udp_port e speed)
+        // Lê os campos restantes (udp_port e speed)
         ss >> udp_port >> comma2 >> speed;
 
         // Armazena os dados no mapa
         config[node_id] = std::make_tuple(ip, udp_port, speed);
     }
 
-    file.close();
-    return config;
+    file.close(); // Fecha o arquivo após a leitura
+    return config; // Retorna o mapa de configurações
 }
 
 /**

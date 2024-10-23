@@ -1,20 +1,10 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "Constants.h"
 #include <string>
 #include <regex>
 #include <iostream>
-
-// Definições de cores
-#define RESET   "\033[0m"
-#define RED     "\033[91m"
-#define GREEN   "\033[92m"
-#define YELLOW  "\033[93m"
-#define MAGENTA "\033[95m"
-#define BLUE    "\033[94m"
-#define CIANO   "\033[96m"
-
-#define RESPONSE_TIMEOUT_SECONDS 10
 
 // Enumeração para os tipos de mensagens de log
 enum class LogType {

@@ -1,5 +1,4 @@
 #include "UDPServer.h"
-#include "Utils.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -105,7 +104,11 @@ void UDPServer::processMessage(const std::string& message, const PeerInfo& direc
                 logMessage(LogType::OTHER, "Mensagem RESPONSE recebida para " + file_name + ", mas o processamento está desativado.");
             }
         }
-    } else {
+    }
+    else if (command == "REQUEST") {
+        processChunkRequestMessage(ss, direct_sender_info);
+    }
+    else {
         logMessage(LogType::ERROR, "Comando desconhecido recebido: " + command);
     }
 }
@@ -173,6 +176,31 @@ void UDPServer::processChunkResponseMessage(std::stringstream& message, const Pe
     logMessage(LogType::RESPONSE,
                "Recebida resposta do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
                " para o arquivo '" + file_name + "'. Chunks disponíveis: " + chunks_ss.str());
+}
+
+/**
+ * @brief Processa a requisição de chunks recebida de outro peer.
+ */
+void UDPServer::processChunkRequestMessage(std::stringstream& message, const PeerInfo& direct_sender_info) {
+    std::string file_name;
+    std::vector<int> requested_chunks;
+    int chunk_id;
+
+    // Extrai o nome do arquivo
+    message >> file_name;
+
+    // Extrai os IDs dos chunks solicitados
+    while (message >> chunk_id) {
+        requested_chunks.push_back(chunk_id);
+    }
+
+    // Log da requisição recebida
+    logMessage(LogType::INFO,
+               "Recebida requisição de chunks do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
+               " para o arquivo '" + file_name + "'. Chunks solicitados: " + std::to_string(requested_chunks.size()));
+
+    // Inicia a transferência dos chunks solicitados via TCP
+    tcp_server.transferChunk(file_name, requested_chunks, direct_sender_info);
 }
 
 /**
@@ -298,7 +326,7 @@ void UDPServer::waitForResponses(const std::string& file_name) {
         processing_active_map[file_name] = true; // Marca como ativo antes de iniciar o timer
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(RESPONSE_TIMEOUT_SECONDS)); // Aguarda o tempo de resposta
+    std::this_thread::sleep_for(std::chrono::seconds(Constants::RESPONSE_TIMEOUT_SECONDS)); // Aguarda o tempo de resposta
 
     {
         std::lock_guard<std::mutex> lock(processing_mutex);

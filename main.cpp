@@ -24,8 +24,8 @@ int main(int argc, char* argv[]) {
     logMessage(LogType::INFO, "Peer " + std::to_string(peer_id) + " inicializado.");
     
     // Carrega as configurações
-    auto topology = ConfigManager::loadTopology("topologia.txt");
-    auto config = ConfigManager::loadConfig("config.txt");
+    auto topology = ConfigManager::loadTopology();
+    auto config = ConfigManager::loadConfig();
     auto expand_topology = ConfigManager::expandTopology(topology, config);
 
     // Verifica se o peer_id está na configuração

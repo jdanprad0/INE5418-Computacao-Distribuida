@@ -1,6 +1,7 @@
 #ifndef FILEMANAGER_H
 #define FILEMANAGER_H
 
+#include "Constants.h"
 #include <string>
 #include <map>
 #include <vector>
@@ -10,6 +11,10 @@
 
 /**
  * @brief Estrutura que armazena as informações sobre um peer que possui um chunk específico.
+ * 
+ * A estrutura `ChunkLocationInfo` guarda os dados essenciais para localizar um peer que possui um chunk específico,
+ * como endereço IP, porta de comunicação e a velocidade de transferência oferecida. Esses dados são usados 
+ * para otimizar o download dos chunks.
  */
 struct ChunkLocationInfo {
     std::string ip;          ///< Endereço IP do peer que possui o chunk.
@@ -31,7 +36,13 @@ struct ChunkLocationInfo {
 };
 
 /**
- * @brief Classe responsável por gerenciar os arquivos e chunks do peer.
+ * @brief A classe `FileManager` é responsável pela gestão dos arquivos e chunks disponíveis para um peer em uma rede P2P.
+ * 
+ * Esta classe oferece funcionalidades para armazenar e gerenciar chunks de arquivos locais, permitindo que o peer 
+ * verifique rapidamente quais chunks estão disponíveis e quais precisam ser baixados. Além disso, a `FileManager`
+ * mantém informações detalhadas sobre a localização de chunks em outros peers, facilitando o processo de 
+ * download. A classe também possui métodos para selecionar de forma eficiente os peers de onde os chunks 
+ * ausentes podem ser adquiridos, garantindo uma transferência de dados otimizada.
  */
 class FileManager {
 private:
@@ -44,32 +55,45 @@ private:
     ///< O valor é um conjunto (std::set<int>) contendo os IDs dos chunks que o peer já possui para aquele arquivo.
 
     std::string directory;  
-    ///< Diretório onde os arquivos do peer estão armazenados.
+    ///< Diretório responsável pelo armazenamento dos arquivos do peer, incluindo o local onde novos chunks serão salvos.
 
     std::unordered_map<std::string, std::vector<std::vector<ChunkLocationInfo>>> chunk_location_info;
     ///< Mapa que armazena informações sobre os peers que possuem cada chunk de um arquivo.
     ///< A chave é o nome do arquivo (std::string).
     ///< O valor é um vetor onde cada índice representa um chunk do arquivo.
     ///< Cada índice contém um vetor de `ChunkLocationInfo`, onde cada `ChunkLocationInfo` descreve um peer
-    ///< que possui o chunk, incluindo seu IP, porta UDP e velocidade de transferência.
+    ///< que possui o chunk, incluindo seu IP, porta e velocidade de transferência.
 
-    std::mutex mapMutex;  
-    ///< Mutex usado para garantir acesso seguro ao mapa em ambientes de múltiplas threads.
+    std::unordered_map<std::string, std::vector<std::mutex>> chunk_location_info_mutex;
+    ///< Mutex para garantir acesso seguro ao mapa de informações dos peers que possuem chunks de arquivos. Há um mutex para cada chunk.
+
 public:
     /**
      * @brief Construtor da classe FileManager.
+     * 
+     * Inicializa um novo `FileManager` atribuindo um ID único ao peer e configurando o diretório
+     * onde os chunks de arquivos serão armazenados localmente. O ID do peer é usado para montar o
+     * diretório final.
+     * 
      * @param peer_id ID do peer.
      */
     FileManager(const std::string& peer_id);
 
     /**
      * @brief Carrega os chunks locais disponíveis.
-     * Escaneia o diretório do peer e atualiza a lista de chunks que o peer possui.
+     * 
+     * Essa função verifica o diretório do peer e escaneia os arquivos de chunks presentes.
+     * A função atualiza a lista de chunks que o peer já possui localmente, facilitando o gerenciamento
+     * e verificação dos chunks disponíveis.
      */
     void loadLocalChunks();
 
     /**
      * @brief Verifica se possui um chunk específico de um arquivo.
+     * 
+     * Essa função verifica se o peer já possui um chunk específico de um determinado arquivo
+     * em seu armazenamento local.
+     * 
      * @param file_name Nome do arquivo.
      * @param chunk Número do chunk.
      * @return true se possuir o chunk, false caso contrário.
@@ -78,6 +102,10 @@ public:
 
     /**
      * @brief Retorna o caminho do chunk solicitado.
+     * 
+     * Retorna o caminho absoluto no sistema de arquivos onde um chunk específico está armazenado.
+     * Isso permite que o chunk seja localizado e transferido, se necessário.
+     * 
      * @param file_name Nome do arquivo.
      * @param chunk Número do chunk.
      * @return Caminho completo do chunk.
@@ -86,6 +114,10 @@ public:
 
     /**
      * @brief Salva um chunk recebido no diretório do peer.
+     * 
+     * Salva os dados recebidos de um chunk no diretório designado do peer. O chunk é gravado
+     * no sistema de arquivos para que o peer possa armazená-lo e acessá-lo mais tarde.
+     * 
      * @param file_name Nome do arquivo.
      * @param chunk Número do chunk.
      * @param data Dados do chunk.
@@ -95,14 +127,22 @@ public:
 
     /**
      * @brief Verifica se todos os chunks de um arquivo foram recebidos.
+     * 
+     * Essa função verifica se o peer já baixou todos os chunks de um arquivo específico.
+     * Isso é útil para saber quando o download de um arquivo foi totalmente concluído.
+     * 
      * @param file_name Nome do arquivo.
      * @param total_chunks Total de chunks do arquivo.
      * @return true se todos os chunks foram recebidos, false caso contrário.
      */
     bool hasAllChunks(const std::string& file_name, int total_chunks);
-    
+
     /**
      * @brief Retorna os chunks disponíveis para um arquivo específico.
+     * 
+     * Essa função retorna uma lista de chunks que já estão disponíveis localmente para um determinado arquivo,
+     * permitindo que o peer verifique quais partes do arquivo já foram baixadas.
+     * 
      * @param file_name Nome do arquivo.
      * @return Vetor contendo os chunks disponíveis localmente.
      */
@@ -111,7 +151,8 @@ public:
     /**
      * @brief Concatena todos os chunks para formar o arquivo completo.
      * 
-     * Combina todos os chunks baixados e monta o arquivo original no diretório do peer.
+     * Combina todos os chunks de um arquivo que foram baixados para formar o arquivo original.
+     * Essa função é chamada após todos os chunks terem sido recebidos.
      * 
      * @param file_name Nome do arquivo.
      * @param total_chunks Total de chunks do arquivo.
@@ -121,10 +162,9 @@ public:
     /**
      * @brief Inicializa a estrutura para armazenar informações sobre onde encontrar cada chunk.
      * 
-     * Esta função cria entradas no mapa de respostas para o arquivo especificado,
-     * alocando um vetor vazio para cada chunk. Esses vetores serão preenchidos posteriormente
-     * com as informações dos peers (IP, porta e velocidade de transferência) que possui
-     * aquele chunk específico.
+     * Esta função prepara o `chunk_location_info` para armazenar as informações dos peers
+     * que possuem cada chunk do arquivo. Ela cria uma entrada no mapa para cada chunk do arquivo,
+     * onde as informações dos peers que possuem esse chunk serão armazenadas.
      * 
      * @param file_name O nome do arquivo ao qual o chunk pertence.
      * @param total_chunks O número total de chunks do arquivo que precisam ser inicializados.
@@ -135,7 +175,8 @@ public:
      * @brief Armazena informações de chunks recebidos para um arquivo específico.
      * 
      * Insere as informações de um chunk recebido no mapa `chunk_location_info`.
-     * Utiliza um mutex para garantir que o acesso ao mapa seja seguro em um ambiente de múltiplas threads.
+     * Essas informações incluem o IP, porta e velocidade de transferência do peer que possui o chunk.
+     * A função usa mutexes para garantir que múltiplas threads possam acessar o mapa com segurança.
      * 
      * @param file_name O nome do arquivo associado aos chunks.
      * @param chunk_ids Uma lista de IDs dos chunks que foram recebidos.
@@ -156,35 +197,6 @@ public:
      * @return Mapa onde a chave é o IP do peer e o valor é um par contendo a porta e a lista de chunks a serem baixados daquele peer.
      */
     std::unordered_map<std::string, std::pair<int, std::vector<int>>> selectPeersForChunkDownload(const std::string& file_name);
-
-    /**
-     * @brief Obtém os chunks ainda não recebidos.
-     * 
-     * Verifica quais chunks ainda estão pendentes para download, retornando um vetor contendo os IDs desses chunks.
-     * 
-     * @param file_name Nome do arquivo.
-     * @param total_chunks Número total de chunks do arquivo.
-     * @return Vetor contendo os IDs dos chunks que ainda precisam ser baixados.
-     */
-    std::vector<int> getMissingChunks(const std::string& file_name, int total_chunks);
 };
-
-// /**
-//  * Implementação da função getMissingChunks:
-//  * Verifica quais chunks ainda não foram recebidos de um arquivo e retorna um vetor contendo esses chunks.
-//  */
-// std::vector<int> FileManager::getMissingChunks(const std::string& file_name, int total_chunks) {
-//     std::vector<int> missing_chunks;
-
-//     std::lock_guard<std::mutex> lock(mapMutex); // Protege o acesso ao mapa local_chunks
-
-//     for (int chunk = 0; chunk < total_chunks; ++chunk) {
-//         if (local_chunks[file_name].find(chunk) == local_chunks[file_name].end()) {
-//             // Se o chunk não está disponível localmente, ele é considerado ausente
-//             missing_chunks.push_back(chunk);
-//         }
-//     }
-//     return missing_chunks;
-// }
 
 #endif // FILEMANAGER_H

@@ -7,14 +7,15 @@
 /**
  * @brief Construtor da classe FileManager.
  */
-FileManager::FileManager(const std::string& peer_id) : peer_id(peer_id) {
-    directory = "./src/" + peer_id;
-}
+FileManager::FileManager(const std::string& peer_id) : peer_id(peer_id) {}
 
 /**
  * @brief Carrega os chunks locais disponíveis.
  */
 void FileManager::loadLocalChunks() {
+    // Setando o diretório dos arquivos
+    directory = Constants::BASE_PATH + peer_id;
+
     namespace fs = std::filesystem;
 
     if (!fs::exists(directory)) {
@@ -118,13 +119,16 @@ void FileManager::initializeChunkLocationInfo(const std::string& file_name, int 
  * @brief Armazena informações de chunks recebidos para um arquivo específico.
  */
 void FileManager::storeChunkLocationInfo(const std::string& file_name, const std::vector<int>& chunk_ids, const std::string& ip, int port, int transfer_speed) {
-    std::lock_guard<std::mutex> lock(mapMutex); // Bloqueia o acesso ao mapa para evitar condições de corrida
-
     for (const int chunk_id : chunk_ids) {
         // Verifica se o chunk_id está dentro do intervalo (tamanho da estrutura)
         if (static_cast<size_t>(chunk_id) < chunk_location_info[file_name].size()) {
-            // Adiciona o ChunkLocationInfo à lista de peers que possuem este chunk_id
-            chunk_location_info[file_name][chunk_id].emplace_back(ip, port, transfer_speed);
+            {
+                // Bloqueia o acesso ao mapa para evitar condições de corrida
+                std::lock_guard<std::mutex> lock(chunk_location_info_mutex[file_name][chunk_id]);
+
+                // Adiciona o ChunkLocationInfo à lista de peers que possuem este chunk_id
+                chunk_location_info[file_name][chunk_id].emplace_back(ip, port, transfer_speed);
+            }
         } else {
             logMessage(LogType::ERROR, "chunk_id " + std::to_string(chunk_id) + " está fora do intervalo para o arquivo: " + file_name);
         }
@@ -137,7 +141,6 @@ void FileManager::storeChunkLocationInfo(const std::string& file_name, const std
 std::unordered_map<std::string, std::pair<int, std::vector<int>>> FileManager::selectPeersForChunkDownload(const std::string& file_name) {
     std::unordered_map<std::string, std::pair<int, std::vector<int>>> chunks_by_peer;
 
-    std::lock_guard<std::mutex> lock(mapMutex); // Protege o acesso ao mapa de chunk_location_info
     std::size_t total_chunks = chunk_location_info[file_name].size();
 
     // Itera pelos chunks que precisam ser baixados
