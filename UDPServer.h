@@ -56,9 +56,8 @@ public:
      * 
      * Esta função cria um socket UDP, configura o endereço e vincula o socket à porta especificada.
      * 
-     * @return Descriptor do socket criado.
      */
-    int initializeUDPSocket();
+    void initializeUDPSocket();
 
     /**
      * @brief Inicia o servidor UDP, permitindo que o peer receba e envie mensagens.

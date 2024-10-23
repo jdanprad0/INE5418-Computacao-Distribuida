@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
     system("clear");
 
     // Mata todos os processos nas portas que serão utilizadas (6000 a 6025 para UDP e 7000 a 7025 para TCP)
-    //system("lsof -ti :6000-6025,7000-7025 | xargs -r kill -9 2>/dev/null");
+    system("lsof -ti :6000-6025,7000-7025 | xargs -r kill -9 2>/dev/null");
 
     // Configuração para flush automático após cada operação de saída
     std::cout.setf(std::ios::unitbuf);

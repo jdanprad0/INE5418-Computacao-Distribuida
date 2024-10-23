@@ -19,9 +19,7 @@ UDPServer::UDPServer(const std::string& ip, int port, int peer_id, int transfer_
 /**
  * @brief Função para criar e configurar o socket UDP.
  */
-int UDPServer::initializeUDPSocket() {
-    int sockfd;
-
+void UDPServer::initializeUDPSocket() {
     // Criação do socket UDP
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         perror("Falha ao criar socket");
@@ -41,8 +39,6 @@ int UDPServer::initializeUDPSocket() {
     }
 
     logMessage(LogType::INFO, "Servidor UDP inicializado em " + ip + ":" + std::to_string(port));
-
-    return sockfd;  // Retorna o descriptor do socket
 }
 
 /**
