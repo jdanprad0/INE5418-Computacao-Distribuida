@@ -4,5 +4,8 @@
 # Ignora a pasta build
 .build/
 
+# Ignora todas as subpastas dentro de src/
+src/*/
+
 # Ignora o executável gerado
 p2p

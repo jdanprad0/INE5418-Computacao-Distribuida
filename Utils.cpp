@@ -34,13 +34,13 @@ void logMessage(LogType type, const std::string& message) {
                 std::cout << Constants::MAGENTA << "[DISCOVERY_SENT] " << message;
                 break;
             case LogType::RESPONSE:
-                std::cout << Constants::GREEN << "[RESPONSE] " << message;
+                std::cout << Constants::CIANO << "[RESPONSE] " << message;
                 break;
             case LogType::SUCCESS:
-                std::cout << Constants::VIBRANT_GREEN << "[RESPONSE] " << message;
+                std::cout << Constants::GREEN << "[SUCCESS] " << message;
                 break;
             default:
-                std::cout << Constants::CIANO << "[OTHER] " << message;
+                std::cout << Constants::ORANGE << "[OTHER] " << message;
                 break;
         }
         std::cout << Constants::RESET << std::endl; // Reseta a cor do texto e finaliza a linha
