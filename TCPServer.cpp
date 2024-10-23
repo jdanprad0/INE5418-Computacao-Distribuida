@@ -41,6 +41,8 @@ TCPServer::TCPServer(const std::string& ip, int port, int peer_id, int transfer_
  * @brief Inicia o servidor TCP para aceitar conexões.
  */
 void TCPServer::run() {
+    logMessage(LogType::INFO, "Servidor TCP em execução... Aguardando mensagens...");
+
     while (true) {
         // Informações para socket do cliente
         struct sockaddr_in client_addr{};

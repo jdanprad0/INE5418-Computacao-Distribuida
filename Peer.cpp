@@ -19,19 +19,19 @@ Peer::Peer(int id, const std::string& ip, int udp_port, int tcp_port, int transf
 void Peer::start() {
     // Carrega os chunks locais do peer
     file_manager.loadLocalChunks();
-
-    // Inicializa os vizinhos na lista do servidor UDP
-    udp_server.setUDPNeighbors(neighbors);
     
-    // Inicia o servidor UDP em uma thread separada
-    std::thread udp_thread(&UDPServer::run, &udp_server);
-
     // Inicia o servidor TCP em uma thread separada (descomentado para funcionalidade futura)
     std::thread tcp_thread(&TCPServer::run, &tcp_server);
 
+    // Inicia o servidor UDP em uma thread separada
+    std::thread udp_thread(&UDPServer::run, &udp_server);
+
+    // Inicializa os vizinhos na lista do servidor UDP
+    udp_server.setUDPNeighbors(neighbors);
+
     // Espera a thread do servidor UDP (join), comentado para o servidor TCP
+    tcp_thread.join();
     udp_thread.join();
-    //tcp_thread.join();
 }
 
 /**
