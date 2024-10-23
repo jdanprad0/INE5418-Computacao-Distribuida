@@ -29,8 +29,8 @@ void FileManager::loadLocalChunks() {
         size_t pos = filename.find(".ch");
         if (pos != std::string::npos) {
             std::string file_name = filename.substr(0, pos);
-            int chunk_number = std::stoi(filename.substr(pos + 3));
-            local_chunks[file_name].insert(chunk_number);
+            int chunk_id = std::stoi(filename.substr(pos + 3));
+            local_chunks[file_name].insert(chunk_id);
         }
     }
 }

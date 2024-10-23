@@ -32,7 +32,7 @@ private:
     const int port;                                         ///< Porta TCP para transferência.
     const int peer_id;                                      ///< Identificador único (ID) do peer.
     const int transfer_speed;                               ///< Capacidade de transferência.
-    int sockfd;                                             ///< Socket TCP.
+    int server_sockfd;                                      ///< Socket TCP para aceitar conexões.
     FileManager& file_manager;                              ///< Referência ao gerenciador de arquivos.
 
 public:
@@ -65,9 +65,9 @@ public:
      * Este método recebe dados de um chunk de um cliente que está conectado ao servidor.
      * Ele armazena o chunk no diretório designado do peer.
      * 
-     * @param client_sock Socket do cliente conectado.
+     * @param client_sockfd Socket do cliente conectado.
      */
-    void receiveChunk(int client_sock);
+    void receiveChunk(int client_sockfd);
 
     /**
      * @brief Transfere um ou mais chunks para o peer solicitante.
@@ -78,9 +78,9 @@ public:
      * 
      * @param file_name Nome do arquivo cujos chunks estão sendo solicitados.
      * @param requested_chunks Vetor contendo os IDs dos chunks que devem ser transferidos.
-     * @param direct_sender_info Informações sobre o peer que está solicitando os chunks, incluindo seu endereço IP e porta.
+     * @param destination_info Informações sobre o peer que está solicitando os chunks, incluindo seu endereço IP e porta.
      */
-    void sendChunk(const std::string& file_name, const std::vector<int>& requested_chunks, const PeerInfo& direct_sender_info);
+    void sendChunk(const std::string& file_name, const std::vector<int>& requested_chunks, const PeerInfo& destination_info);
 };
 
 #endif // TCPSERVER_H
