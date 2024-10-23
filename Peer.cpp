@@ -59,6 +59,9 @@ void Peer::searchFile(const std::string& metadata_file) {
     // Inicializa a estrutura responsável por armazenar informações de localização dos chunks
     file_manager.initializeChunkLocationInfo(file_name, total_chunks);
 
+    // Inicializa os mutexes responsáveis por sincronizar o acesso a cada chunk do arquivo
+    file_manager.initializeChunkMutexes(file_name, total_chunks);
+
     // Começa a descoberta dos chunks
     discoverAndRequestChunks(file_name, total_chunks, initial_ttl);
 }

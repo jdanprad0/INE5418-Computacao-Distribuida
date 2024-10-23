@@ -107,6 +107,9 @@ void FileManager::assembleFile(const std::string& file_name, int total_chunks) {
     std::cout << "Arquivo " << file_name << " montado com sucesso!" << "\n" << std::endl;
 }
 
+/**
+ * @brief Inicializa a estrutura para armazenar informações sobre onde encontrar cada chunk.
+ */
 void FileManager::initializeChunkLocationInfo(const std::string& file_name, int total_chunks) {
     // Verifica se já existe uma entrada para o file_name
     if (chunk_location_info.find(file_name) == chunk_location_info.end()) {
@@ -114,6 +117,18 @@ void FileManager::initializeChunkLocationInfo(const std::string& file_name, int 
         chunk_location_info[file_name].resize(total_chunks); // Inicializa com vetores vazios para cada chunk
     }
 }
+
+/**
+ * @brief Inicializa o vetor de mutexes para cada chunk de um arquivo.
+ */
+void FileManager::initializeChunkMutexes(const std::string& file_name, int total_chunks) {
+    // Verifica se o file_name já existe no mapa
+    if (chunk_location_info_mutex.find(file_name) == chunk_location_info_mutex.end()) {
+        // Se não existir, inicializa um vetor de mutexes com o número total de chunks
+        chunk_location_info_mutex[file_name] = std::vector<std::mutex>(total_chunks);
+    }
+}
+
 
 /**
  * @brief Armazena informações de chunks recebidos para um arquivo específico.
@@ -125,7 +140,6 @@ void FileManager::storeChunkLocationInfo(const std::string& file_name, const std
             {
                 // Bloqueia o acesso ao mapa para evitar condições de corrida
                 std::lock_guard<std::mutex> lock(chunk_location_info_mutex[file_name][chunk_id]);
-
                 // Adiciona o ChunkLocationInfo à lista de peers que possuem este chunk_id
                 chunk_location_info[file_name][chunk_id].emplace_back(ip, port, transfer_speed);
             }

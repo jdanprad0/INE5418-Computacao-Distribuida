@@ -172,6 +172,18 @@ public:
     void initializeChunkLocationInfo(const std::string& file_name, int total_chunks);
 
     /**
+     * @brief Inicializa o vetor de mutexes para cada chunk de um arquivo.
+     * 
+     * Esta função inicializa um vetor de `std::mutex` no `chunk_location_info_mutex` para cada chunk
+     * do arquivo especificado. O vetor de mutexes terá o tamanho igual ao número total de chunks,
+     * com um mutex para cada chunk, garantindo que o acesso a cada chunk possa ser sincronizado.
+     * 
+     * @param file_name O nome do arquivo para o qual os mutexes dos chunks serão inicializados.
+     * @param total_chunks O número total de chunks do arquivo que precisam ser protegidos por mutexes.
+     */
+    void initializeChunkMutexes(const std::string& file_name, int total_chunks);
+
+    /**
      * @brief Armazena informações de chunks recebidos para um arquivo específico.
      * 
      * Insere as informações de um chunk recebido no mapa `chunk_location_info`.

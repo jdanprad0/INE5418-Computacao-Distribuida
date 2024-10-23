@@ -36,6 +36,9 @@ void logMessage(LogType type, const std::string& message) {
             case LogType::RESPONSE:
                 std::cout << Constants::GREEN << "[RESPONSE] " << message;
                 break;
+            case LogType::SUCCESS:
+                std::cout << Constants::VIBRANT_GREEN << "[RESPONSE] " << message;
+                break;
             default:
                 std::cout << Constants::CIANO << "[OTHER] " << message;
                 break;

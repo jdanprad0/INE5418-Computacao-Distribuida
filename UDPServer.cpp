@@ -156,6 +156,7 @@ void UDPServer::processChunkResponseMessage(std::stringstream& message, const Pe
 
     // Extrai o nome do arquivo e os chunks disponíveis
     message >> file_name >> transfer_speed;
+
     int chunk;
     while (message >> chunk) {
         chunks_received.push_back(chunk);

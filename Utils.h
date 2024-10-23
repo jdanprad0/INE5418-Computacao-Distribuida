@@ -13,6 +13,7 @@ enum class LogType {
     DISCOVERY_RECEIVED,
     DISCOVERY_SENT,
     RESPONSE,
+    SUCCESS,
     OTHER // Para outros tipos não especificados
 };
 

@@ -29,10 +29,12 @@ TCPServer::TCPServer(const std::string& ip, int port, int peer_id, int transfer_
     }
 
     // Coloca o socket em modo de escuta com até 5 por vez
-    if (listen(server_sockfd, 5) < 0) {
+    if (listen(server_sockfd, 10) < 0) {
         perror("Erro ao escutar no socket TCP");
         exit(EXIT_FAILURE);
     }
+
+    logMessage(LogType::INFO, "Servidor TCP inicializado em " + ip + ":" + std::to_string(port));
 }
 
 /**
@@ -128,7 +130,7 @@ void TCPServer::receiveChunk(int client_sockfd) {
         if (bytes_received < 0) {
             perror("Erro ao receber o chunk.");
         } else {
-            logMessage(LogType::ERROR, "SUCESSO AO RECEBER O CHUNK " + std::to_string(chunk_id) + " DO ARQUIVO " + file_name + " DE " + client_ip + ":" + std::to_string(client_port));
+            logMessage(LogType::SUCCESS, "SUCESSO AO RECEBER O CHUNK " + std::to_string(chunk_id) + " DO ARQUIVO " + file_name + " DE " + client_ip + ":" + std::to_string(client_port));
         }
 
         chunk_file.close(); // Fecha o arquivo após a transferência
@@ -201,13 +203,13 @@ void TCPServer::sendChunk(const std::string& file_name, const std::vector<int>& 
                 break; // Interrompe se houver um erro no envio
             }
 
-            logMessage(LogType::INFO, "Enviado " + std::to_string(bytes_sent) + " do chunk " + std::to_string(chunk_id) + " do arquivo " + file_name + " para o IP " + destination_info.ip.c_str() + ":" + std::to_string(destination_info.port + 1000));
+            logMessage(LogType::INFO, "Enviado " + std::to_string(bytes_sent) + " bytes do chunk " + std::to_string(chunk_id) + " do arquivo " + file_name + " para o IP " + destination_info.ip.c_str() + ":" + std::to_string(destination_info.port + 1000));
 
             // Espera por 1 segundo para dar o efeito de velocidade
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
 
-        logMessage(LogType::ERROR, "SUCESSO AO ENVIAR O CHUNK " + std::to_string(chunk_id) + " DO ARQUIVO " + file_name + " PARA " + destination_info.ip.c_str() + ":" + std::to_string(destination_info.port + 1000));
+        logMessage(LogType::SUCCESS, "SUCESSO AO ENVIAR O CHUNK " + std::to_string(chunk_id) + " DO ARQUIVO " + file_name + " PARA " + destination_info.ip.c_str() + ":" + std::to_string(destination_info.port + 1000));
 
         // Fecha o arquivo após o envio
         chunk_file.close();

@@ -17,6 +17,7 @@ namespace Constants {
     const std::string MAGENTA = "\033[95m";  ///< Cor magenta.
     const std::string BLUE    = "\033[94m";  ///< Cor azul.
     const std::string CIANO   = "\033[96m";  ///< Cor ciano.
+    const std::string VIBRANT_GREEN = "\e[92m";  ///< Cor verde vibrante.
 
     const int RESPONSE_TIMEOUT_SECONDS = 10; ///< Tempo limite para resposta em segundos.
 }
