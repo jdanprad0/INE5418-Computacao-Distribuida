@@ -12,28 +12,24 @@ std::string trim(const std::string& str) {
  * @brief Função auxiliar para formatar e exibir mensagens de log de forma consistente, com cores.
  */
 void logMessage(LogType type, const std::string& message) {
-    std::cout << RESET;
-
     switch (type) {
         case LogType::ERROR:
-            std::cout << RED << "[ERROR] " << message;
+            std::cout << RED << "[ERROR] " << message << RESET << std::endl << std::flush;
             break;
         case LogType::INFO:
-            std::cout << BLUE << "[INFO] " << message;
+            std::cout << BLUE << "[INFO] " << message << RESET << std::endl << std::flush;
             break;
         case LogType::DISCOVERY_RECEIVED:
-            std::cout << YELLOW << "[DISCOVERY_RECEIVED] " << message;
+            std::cout << YELLOW << "[DISCOVERY_RECEIVED] " << message << RESET << std::endl << std::flush;
             break;
         case LogType::DISCOVERY_SENT:
-            std::cout << MAGENTA << "[DISCOVERY_SENT] " << message;
+            std::cout << MAGENTA << "[DISCOVERY_SENT] " << message << RESET << std::endl << std::flush;
             break;
         case LogType::RESPONSE:
-            std::cout << GREEN << "[RESPONSE] " << message;
+            std::cout << GREEN << "[RESPONSE] " << message << RESET << std::endl << std::flush;
             break;
         default:
-            std::cout << CIANO << "[OTHER] " << message;
+            std::cout << CIANO << "[OTHER] " << message << RESET << std::endl << std::flush;
             break;
     }
-
-    std::cout << RESET << std::endl;
 }
