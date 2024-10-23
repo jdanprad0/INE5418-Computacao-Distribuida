@@ -14,19 +14,6 @@
 #include <mutex>
 
 /**
- * @brief Definição da struct PeerInfo.
- * 
- * Esta struct armazena as informações de um peer, especificamente seu endereço IP
- * e a porta UDP utilizada para comunicação.
- */
-struct PeerInfo {
-    std::string ip;  ///< Endereço IP do peer.
-    int port;        ///< Porta UDP do peer.
-
-    PeerInfo(const std::string& ip, int port) : ip(ip), port(port) {}
-};
-
-/**
  * @brief Classe responsável por gerenciar a comunicação UDP para descoberta de arquivos em uma rede P2P.
  * 
  * Esta classe implementa as funcionalidades de envio e recebimento de mensagens UDP 

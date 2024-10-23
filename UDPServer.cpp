@@ -200,7 +200,7 @@ void UDPServer::processChunkRequestMessage(std::stringstream& message, const Pee
                " para o arquivo '" + file_name + "'. Chunks solicitados: " + std::to_string(requested_chunks.size()));
 
     // Inicia a transferência dos chunks solicitados via TCP
-    tcp_server.transferChunk(file_name, requested_chunks, direct_sender_info);
+    tcp_server.sendChunk(file_name, requested_chunks, direct_sender_info);
 }
 
 /**
@@ -341,11 +341,9 @@ void UDPServer::waitForResponses(const std::string& file_name) {
  */
 ssize_t UDPServer::sendUDPMessage(const std::string& ip, int port, const std::string& message) {
     struct sockaddr_in peer_addr{};
-
-    // Configura o tipo de endereço (IPv4), endereço IP e porta do peer para o envio da mensagem UDP.
-    peer_addr.sin_family = AF_INET;
-    peer_addr.sin_addr.s_addr = inet_addr(ip.c_str());
-    peer_addr.sin_port = htons(port);
+    
+    // Estrutura para armazenar informações do endereço do socket
+    struct sockaddr_in peer_addr = createSockAddr(ip.c_str(), port);
 
     // Envia a mensagem UDP para o peer
     ssize_t bytes_sent = sendto(sockfd, message.c_str(), message.size(), 0,

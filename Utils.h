@@ -31,4 +31,13 @@ std::string trim(const std::string& str);
  */
 void logMessage(LogType type, const std::string& message);
 
+/**
+ * @brief Cria e configura uma estrutura sockaddr_in com base no IP e na porta fornecidos.
+ * 
+ * @param ip Endereço IP a ser configurado.
+ * @param port Porta a ser configurada.
+ * @return struct sockaddr_in Estrutura sockaddr_in configurada.
+ */
+struct sockaddr_in createSockAddr(const std::string& ip, int port);
+
 #endif // UTILS_H

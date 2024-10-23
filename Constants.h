@@ -4,9 +4,6 @@
 #include <string>
 
 namespace Constants {
-    const std::string CONFIG_PATH = "./src/config.txt";         ///< Caminho para o arquivo de configuração.
-    const std::string TOPOLOGY_PATH = "./src/topologia.txt";    ///< Caminho para o arquivo de topologia.
-
     // Caminhos dos arquivos
     const std::string CONFIG_PATH = "./src/config.txt";         ///< Caminho para o arquivo de configuração.
     const std::string TOPOLOGY_PATH = "./src/topologia.txt";    ///< Caminho para o arquivo de topologia.

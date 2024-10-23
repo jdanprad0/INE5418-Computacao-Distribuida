@@ -23,7 +23,7 @@ private:
     const std::string ip;                                               ///< Endereço IP atribuído ao peer (imutável após inicialização).
     const int udp_port;                                                 ///< Porta UDP usada para descoberta de arquivos.
     const int tcp_port;                                                 ///< Porta TCP usada para transferência de chunks.
-    const int transfer_speed;                                           ///< Capacidade de transferência de dados do peer (em bytes/s).
+    const int transfer_speed;                                           ///< Capacidade de transferência de dados do peer.
     const std::vector<std::tuple<std::string, int>> neighbors;          ///< Lista de vizinhos diretos do peer, incluindo seus IPs e portas UDP.
     FileManager file_manager;                                           ///< Gerenciador responsável por lidar com os arquivos e chunks do peer.
     TCPServer tcp_server;                                               ///< Servidor TCP usado para transferir chunks de arquivos entre peers.
@@ -40,7 +40,7 @@ public:
      * @param ip Endereço IP do peer.
      * @param udp_port Porta UDP para descoberta de arquivos.
      * @param tcp_port Porta TCP para transferência de chunks.
-     * @param transfer_speed Capacidade de transferência em bytes/s.
+     * @param transfer_speed Capacidade de transferência.
      * @param neighbors Informações dos vizinhos do peer (IP, porta UDP).
      */
     Peer(int id, const std::string& ip, int udp_port, 

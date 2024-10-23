@@ -11,7 +11,7 @@ OBJDIR = .build
 SRC = Utils.cpp ConfigManager.cpp FileManager.cpp Peer.cpp TCPServer.cpp UDPServer.cpp main.cpp
 
 # Arquivos de cabeçalho
-HEADERS = Utils.h ConfigManager.h FileManager.h Peer.h TCPServer.h UDPServer.h
+HEADERS = Constants.h Utils.h ConfigManager.h FileManager.h Peer.h TCPServer.h UDPServer.h
 
 # Nome do executável
 TARGET = p2p
