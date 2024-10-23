@@ -59,8 +59,7 @@ void TCPServer::run() {
  * @brief Recebe um chunk do cliente e o salva.
  */
 void TCPServer::receiveChunk(int client_sock) {
-    // Inicializa um buffer para armazenar o chunk recebido
-    char* file_buffer = nullptr;
+    char* file_buffer = nullptr; // Inicializa um buffer para armazenar o chunk recebido
     size_t bytes_received;
 
     // Recebe a informação que vai começar a transferência (esperando algo como "PUT <file_name> <chunk_number> <transfer_speed>")
