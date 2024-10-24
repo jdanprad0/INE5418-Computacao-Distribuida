@@ -206,9 +206,9 @@ public:
      * do peer e a lista de chunks que serão baixados daquele peer.
      * 
      * @param file_name O nome do arquivo cujos chunks serão baixados.
-     * @return Mapa onde a chave é o IP do peer e o valor é um par contendo a porta e a lista de chunks a serem baixados daquele peer.
+     * @return Mapa onde a chave é o ip:port do peer e o valor é uma lista de chunks a serem baixados daquele peer.
      */
-    std::unordered_map<std::string, std::pair<int, std::vector<int>>> selectPeersForChunkDownload(const std::string& file_name);
+    std::unordered_map<std::string, std::vector<int>> selectPeersForChunkDownload(const std::string& file_name);
 };
 
 #endif // FILEMANAGER_H

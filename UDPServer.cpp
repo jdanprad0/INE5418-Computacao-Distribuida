@@ -254,26 +254,38 @@ bool UDPServer::sendChunkResponseMessage(const std::string& file_name, const Pee
  * @brief Envia uma mensagem REQUEST para pedir chunks específicos de um arquivo a cada peer.
  */
 void UDPServer::sendChunkRequestMessage(const std::string& file_name) {
+    // Obtém o mapa dos peers com seus chunks
     auto chunks_by_peer = file_manager.selectPeersForChunkDownload(file_name);
 
-    for (const auto& [peer_ip, peer_info] : chunks_by_peer) {
-        int peer_port = peer_info.first;
-        const std::vector<int>& chunks = peer_info.second;
-
-        // Monta a mensagem REQUEST para pedir chunks específicos
+    // Itera sobre cada peer e seus chunks
+    for (const auto& [peer_ip_port, chunks] : chunks_by_peer) {
+        // Monta a mensagem de requisição (REQUEST) para os chunks específicos
         std::string request_message = buildChunkRequestMessage(file_name, chunks);
 
-        // Usa a função sendUDPMessage para enviar a mensagem REQUEST
+        // Extrai a porta e o IP da string "IP:Port"
+        std::string peer_ip;
+        int peer_port;
+
+        // Encontra a posição do ":" para separar o IP da porta
+        std::size_t colon_pos = peer_ip_port.find(':');
+        if (colon_pos != std::string::npos) {
+            peer_ip = peer_ip_port.substr(0, colon_pos); // Extrai o IP
+            peer_port = std::stoi(peer_ip_port.substr(colon_pos + 1)); // Converte a porta para int
+        }
+
+        // Envia a mensagem REQUEST via UDP para o peer (IP e porta)
         ssize_t bytes_sent = sendUDPMessage(peer_ip, peer_port, request_message);
 
+        // Verifica erro no envio da mensagem
         if (bytes_sent < 0) {
             perror("Erro ao enviar mensagem UDP REQUEST de chunks");
         } else {
-            logMessage(LogType::INFO, "Mensagem REQUEST enviada para " + peer_ip + ":" + std::to_string(peer_port) +
+            logMessage(LogType::INFO, "Mensagem REQUEST enviada para " + peer_ip_port +
                        " -> " + request_message);
         }
     }
 }
+
 
 /**
  * @brief Monta a mensagem de descoberta de um arquivo.

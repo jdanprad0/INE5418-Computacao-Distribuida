@@ -140,8 +140,18 @@ void FileManager::storeChunkLocationInfo(const std::string& file_name, const std
             {
                 // Bloqueia o acesso ao mapa para evitar condições de corrida
                 std::lock_guard<std::mutex> lock(chunk_location_info_mutex[file_name][chunk_id]);
-                // Adiciona o ChunkLocationInfo à lista de peers que possuem este chunk_id
-                chunk_location_info[file_name][chunk_id].emplace_back(ip, port, transfer_speed);
+
+                // Verifica se o peer já existe na lista de ChunkLocationInfo
+                auto& chunk_list = chunk_location_info[file_name][chunk_id];
+                bool peer_exists = std::any_of(chunk_list.begin(), chunk_list.end(), 
+                                            [&](const ChunkLocationInfo& cli) {
+                                                return cli.ip == ip && cli.port == port;
+                                            });
+
+                // Se o peer não existir, adiciona à lista
+                if (!peer_exists) {
+                    chunk_list.emplace_back(ip, port, transfer_speed);
+                }
             }
         } else {
             logMessage(LogType::ERROR, "chunk_id " + std::to_string(chunk_id) + " está fora do intervalo para o arquivo: " + file_name);
@@ -152,22 +162,35 @@ void FileManager::storeChunkLocationInfo(const std::string& file_name, const std
 /**
  * @brief Seleciona os peers de onde os chunks serão baixados.
  */
-std::unordered_map<std::string, std::pair<int, std::vector<int>>> FileManager::selectPeersForChunkDownload(const std::string& file_name) {
-    std::unordered_map<std::string, std::pair<int, std::vector<int>>> chunks_by_peer;
+std::unordered_map<std::string, std::vector<int>> FileManager::selectPeersForChunkDownload(const std::string& file_name) {
+    std::unordered_map<std::string, std::vector<int>> chunks_by_peer;
 
     std::size_t total_chunks = chunk_location_info[file_name].size();
 
     // Itera pelos chunks que precisam ser baixados
     for (std::size_t chunk = 0; chunk < total_chunks; ++chunk) {
-        // Verifica se há respostas para o arquivo atual
+        // Verifica se há peers que têm o chunk atual
         if (chunk < total_chunks) {
             const std::vector<ChunkLocationInfo>& responses = chunk_location_info[file_name][chunk];
 
             // Se houver ao menos uma resposta, selecione o primeiro peer
-            // Fazer o critério de seleção aqui
             if (!responses.empty()) {
-                const ChunkLocationInfo& selected_peer = responses[0]; // Escolhe o primeiro peer da lista
-                chunks_by_peer[selected_peer.ip] = std::make_pair(selected_peer.port, std::vector<int>{static_cast<int>(chunk)});
+                const ChunkLocationInfo& selected_peer = responses[0]; // Seleciona o primeiro peer da lista
+                
+                // Cria a chave no formato "IP:Port"
+                std::ostringstream peer_key;
+                peer_key << selected_peer.ip << ":" << selected_peer.port;
+                
+                // Verifica se o peer já existe no mapa chunks_by_peer
+                if (chunks_by_peer.find(peer_key.str()) != chunks_by_peer.end()) {
+                    // Se já existir, apenas adiciona o chunk à lista de chunks desse peer
+                    chunks_by_peer[peer_key.str()].push_back(static_cast<int>(chunk));
+                } else {
+                    // Se não existir, cria uma nova entrada para esse peer
+                    chunks_by_peer[peer_key.str()] = std::vector<int>{static_cast<int>(chunk)};
+                    // teste duplicação
+                    chunks_by_peer[peer_key.str()].push_back(static_cast<int>(chunk));
+                }
             }
         }
     }
