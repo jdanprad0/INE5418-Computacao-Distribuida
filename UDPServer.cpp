@@ -168,7 +168,7 @@ void UDPServer::processChunkResponseMessage(std::stringstream& message, const Pe
     // Armazena as respostas recebidas no mapa
     file_manager.storeChunkLocationInfo(file_name, chunks_received, direct_sender_info.ip, direct_sender_info.port, transfer_speed);
 
-    logMessage(LogType::RESPONSE,
+    logMessage(LogType::RESPONSE_RECEIVED,
                "Recebida resposta do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
                " para o arquivo '" + file_name + "'. Chunks disponíveis: " + chunks_ss.str());
 }
@@ -189,10 +189,15 @@ void UDPServer::processChunkRequestMessage(std::stringstream& message, const Pee
         requested_chunks.push_back(chunk_id);
     }
 
-    // Log da requisição recebida
-    logMessage(LogType::INFO,
+    // Cria uma string com todos os chunks solicitados
+    std::string chunks_str;
+    for (const int& chunk : requested_chunks) {
+        chunks_str += std::to_string(chunk) + " ";
+    }
+
+    logMessage(LogType::REQUEST_RECEIVED,
                "Recebida requisição de chunks do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
-               " para o arquivo '" + file_name + "'. Chunks solicitados: " + std::to_string(requested_chunks.size()));
+               " para o arquivo '" + file_name + "'. Chunks solicitados: " + chunks_str);
 
     // Inicia a transferência dos chunks solicitados via TCP
     tcp_server.sendChunk(file_name, requested_chunks, direct_sender_info);
@@ -240,7 +245,7 @@ bool UDPServer::sendChunkResponseMessage(const std::string& file_name, const Pee
             chunks_ss << chunk << " ";
         }
 
-        logMessage(LogType::INFO,
+        logMessage(LogType::RESPONSE_SENT,
                    "Enviada resposta para o Peer " + chunk_requester_info.ip + ":" + std::to_string(chunk_requester_info.port) +
                    " com chunks disponíveis do arquivo '" + file_name + "': " + chunks_ss.str());
         return true;
@@ -280,7 +285,7 @@ void UDPServer::sendChunkRequestMessage(const std::string& file_name) {
         if (bytes_sent < 0) {
             perror("Erro ao enviar mensagem UDP REQUEST de chunks");
         } else {
-            logMessage(LogType::INFO, "Mensagem REQUEST enviada para " + peer_ip_port +
+            logMessage(LogType::REQUEST_SENT, "Mensagem REQUEST enviada para " + peer_ip_port +
                        " -> " + request_message);
         }
     }

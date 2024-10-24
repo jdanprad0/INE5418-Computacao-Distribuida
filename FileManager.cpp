@@ -188,8 +188,6 @@ std::unordered_map<std::string, std::vector<int>> FileManager::selectPeersForChu
                 } else {
                     // Se não existir, cria uma nova entrada para esse peer
                     chunks_by_peer[peer_key.str()] = std::vector<int>{static_cast<int>(chunk)};
-                    // teste duplicação
-                    chunks_by_peer[peer_key.str()].push_back(static_cast<int>(chunk));
                 }
             }
         }

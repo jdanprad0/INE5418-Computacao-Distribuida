@@ -21,23 +21,32 @@ void logMessage(LogType type, const std::string& message) {
     {
         std::lock_guard<std::mutex> lock(cout_mutex); // Bloqueia o acesso à saída do console
         switch (type) {
-            case LogType::ERROR:
-                std::cout << Constants::RED << "[ERROR] " << message;
-                break;
-            case LogType::INFO:
-                std::cout << Constants::BLUE << "[INFO] " << message;
-                break;
             case LogType::DISCOVERY_RECEIVED:
                 std::cout << Constants::YELLOW << "[DISCOVERY_RECEIVED] " << message;
                 break;
             case LogType::DISCOVERY_SENT:
                 std::cout << Constants::MAGENTA << "[DISCOVERY_SENT] " << message;
                 break;
-            case LogType::RESPONSE:
-                std::cout << Constants::CIANO << "[RESPONSE] " << message;
+            case LogType::RESPONSE_RECEIVED:
+                std::cout << Constants::CIANO << "[RESPONSE_RECEIVED] " << message;
+                break;
+            case LogType::RESPONSE_SENT:
+                std::cout << Constants::PURPLE << "[RESPONSE_SENT] " << message;
+                break;
+            case LogType::REQUEST_RECEIVED:
+                std::cout << Constants::ORANGE << "[REQUEST_RECEIVED] " << message;
+                break;
+            case LogType::REQUEST_SENT:
+                std::cout << Constants::PINK << "[REQUEST_SENT] " << message;
                 break;
             case LogType::SUCCESS:
                 std::cout << Constants::GREEN << "[SUCCESS] " << message;
+                break;
+            case LogType::INFO:
+                std::cout << Constants::BLUE << "[INFO] " << message;
+                break;
+            case LogType::ERROR:
+                std::cout << Constants::RED << "[ERROR] " << message;
                 break;
             default:
                 std::cout << Constants::ORANGE << "[OTHER] " << message;
