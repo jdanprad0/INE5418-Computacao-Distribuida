@@ -70,6 +70,7 @@ void TCPServer::receiveChunks(int client_sockfd) {
     // Cria um buffer para receber a mensagem de controle
     char request_buffer[256];
 
+    // Continua a leitura até o cliente fechar a conexão
     while (true) {
         // Recebe a mensagem de controle
         ssize_t request_size = recv(client_sockfd, request_buffer, sizeof(request_buffer), 0);
@@ -80,7 +81,7 @@ void TCPServer::receiveChunks(int client_sockfd) {
             } else {
                 perror("Erro ao receber dados via TCP");
             }
-            break;
+            break; // Encerra o loop
         }
         
         // Coloca um marcador de final de string no final do conteúdo do buffer
