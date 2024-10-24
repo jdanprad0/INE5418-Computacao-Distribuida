@@ -76,7 +76,7 @@ public:
      * e enviados através do socket do cliente.
      * 
      * @param file_name Nome do arquivo cujos chunks estão sendo solicitados.
-     * @param chunk ID do chunk que deve ser transferido.
+     * @param chunks Lista com os IDs dos chunks que devem ser transferidos.
      * @param destination_info Informações sobre o peer que está solicitando os chunks, incluindo seu endereço IP e porta UDP (Porta TCP = Porta UDP + 1000).
      */
     void sendChunks(const std::string& file_name, const std::vector<int>& chunks, const PeerInfo& destination_info);
