@@ -31,7 +31,7 @@ void logMessage(LogType type, const std::string& message) {
                 std::cout << Constants::CIANO << "[RESPONSE_RECEIVED] " << message;
                 break;
             case LogType::RESPONSE_SENT:
-                std::cout << Constants::PURPLE << "[RESPONSE_SENT] " << message;
+                std::cout << Constants::GRAY << "[RESPONSE_SENT] " << message;
                 break;
             case LogType::REQUEST_RECEIVED:
                 std::cout << Constants::ORANGE << "[REQUEST_RECEIVED] " << message;

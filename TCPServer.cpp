@@ -143,7 +143,7 @@ void TCPServer::receiveChunk(int client_sockfd) {
 /**
  * @brief Envia um ou mais chunks para o peer solicitante.
  */
-void TCPServer::sendChunk(const std::string& file_name, const std::vector<int>& requested_chunks, const PeerInfo& destination_info) {
+void TCPServer::sendChunk(const std::string& file_name, int chunk, const PeerInfo& destination_info) {
     // Cria um buffer com base na minha velocidade
     char* file_buffer = new char[transfer_speed];
 
@@ -165,55 +165,55 @@ void TCPServer::sendChunk(const std::string& file_name, const std::vector<int>& 
     }
 
     // Envia a mensagem de controle antes de transferir o chunk
-    for (int chunk_id : requested_chunks) {
-        std::stringstream ss;
-        ss << "PUT " << file_name << " " << chunk_id << " " << transfer_speed; // Formato da mensagem
+    std::stringstream ss;
+    ss << "PUT " << file_name << " " << chunk << " " << transfer_speed; // Formato da mensagem
 
-        std::string control_message = ss.str();
-        ssize_t bytes_sent = send(client_sockfd, control_message.c_str(), control_message.size(), 0); // Envia a mensagem
-        if (bytes_sent < 0) {
-            perror("Erro ao enviar a mensagem de controle para envio de chunk.");
-            close(client_sockfd);
-            delete[] file_buffer;
-            return; // Retorna se houver erro ao enviar a mensagem de controle
-        }
-
-        // Obtém o caminho do chunk
-        std::string chunk_path = file_manager.getChunkPath(file_name, chunk_id);
-        std::ifstream chunk_file(chunk_path, std::ios::binary); // Abre o arquivo em modo binário
-
-        if (!chunk_file.is_open()) {
-            logMessage(LogType::ERROR, "Chunk " + std::to_string(chunk_id) + "não encontrado.");
-            continue; // Se não encontrar o chunk, continua para o próximo
-        }
-
-        // Envia o chunk em blocos, respeitando a minha velocidade de transferência
-        while (chunk_file) {
-            // Lê uma quantidade de bytes do chunk
-            chunk_file.read(file_buffer, transfer_speed);  // Lê até o tamanho da minha velocidade
-
-            // Obtém o número de bytes lidos
-            size_t bytes_to_send = chunk_file.gcount(); // Número real de bytes lidos
-
-            // Envia os bytes lidos
-            ssize_t bytes_sent = send(client_sockfd, file_buffer, bytes_to_send, 0);
-            if (bytes_sent < 0) {
-                perror("Erro ao enviar o chunk");;
-                logMessage(LogType::ERROR, "Um erro ocorreu ao tentar enviar o chunk " + std::to_string(chunk_id));
-                break; // Interrompe se houver um erro no envio
-            }
-
-            logMessage(LogType::INFO, "Enviado " + std::to_string(bytes_sent) + " bytes do chunk " + std::to_string(chunk_id) + " do arquivo " + file_name + " para o IP " + destination_info.ip.c_str() + ":" + std::to_string(destination_info.port + 1000));
-
-            // Espera por 1 segundo para dar o efeito de velocidade
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }
-
-        logMessage(LogType::SUCCESS, "SUCESSO AO ENVIAR O CHUNK " + std::to_string(chunk_id) + " DO ARQUIVO " + file_name + " PARA " + destination_info.ip.c_str() + ":" + std::to_string(destination_info.port + 1000));
-
-        // Fecha o arquivo após o envio
-        chunk_file.close();
+    std::string control_message = ss.str();
+    ssize_t bytes_sent = send(client_sockfd, control_message.c_str(), control_message.size(), 0); // Envia a mensagem
+    if (bytes_sent < 0) {
+        perror("Erro ao enviar a mensagem de controle para envio de chunk.");
+        close(client_sockfd);
+        delete[] file_buffer;
+        return; // Retorna se houver erro ao enviar a mensagem de controle
     }
+
+    // Obtém o caminho do chunk
+    std::string chunk_path = file_manager.getChunkPath(file_name, chunk);
+    std::ifstream chunk_file(chunk_path, std::ios::binary); // Abre o arquivo em modo binário
+
+    if (!chunk_file.is_open()) {
+        logMessage(LogType::ERROR, "Chunk " + std::to_string(chunk) + "não encontrado.");
+        close(client_sockfd);
+        delete[] file_buffer;
+        return;
+    }
+
+    // Envia o chunk em blocos, respeitando a minha velocidade de transferência
+    while (chunk_file) {
+        // Lê uma quantidade de bytes do chunk
+        chunk_file.read(file_buffer, transfer_speed);  // Lê até o tamanho da minha velocidade
+
+        // Obtém o número de bytes lidos
+        size_t bytes_to_send = chunk_file.gcount(); // Número real de bytes lidos
+
+        // Envia os bytes lidos
+        ssize_t bytes_sent = send(client_sockfd, file_buffer, bytes_to_send, 0);
+        if (bytes_sent < 0) {
+            perror("Erro ao enviar o chunk");;
+            logMessage(LogType::ERROR, "Um erro ocorreu ao tentar enviar o chunk " + std::to_string(chunk));
+            break; // Interrompe se houver um erro no envio
+        }
+
+        logMessage(LogType::INFO, "Enviado " + std::to_string(bytes_sent) + " bytes do chunk " + std::to_string(chunk) + " do arquivo " + file_name + " para o IP " + destination_info.ip.c_str() + ":" + std::to_string(destination_info.port + 1000));
+
+        // Espera por 1 segundo para dar o efeito de velocidade
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+
+    logMessage(LogType::SUCCESS, "SUCESSO AO ENVIAR O CHUNK " + std::to_string(chunk) + " DO ARQUIVO " + file_name + " PARA " + destination_info.ip.c_str() + ":" + std::to_string(destination_info.port + 1000));
+
+    // Fecha o arquivo após o envio
+    chunk_file.close();
 
     close(client_sockfd);
     delete[] file_buffer; // Libera a memória alocada para o buffer

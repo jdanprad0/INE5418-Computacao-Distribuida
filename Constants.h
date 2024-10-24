@@ -17,6 +17,7 @@ namespace Constants {
     const std::string MAGENTA = "\033[95m";  ///< Cor magenta.
     const std::string BLUE    = "\033[94m";  ///< Cor azul.
     const std::string CIANO   = "\033[96m";  ///< Cor ciano.
+    const std::string GRAY    = "\033[37m";  ///< Cor cinza claro.
     const std::string ORANGE  = "\033[38;5;208m"; ///< Cor laranja.
     const std::string PINK    = "\033[38;5;213m"; ///< Cor rosa 
     const std::string PURPLE  = "\033[38;5;177m"; ///< Cor roxa.
