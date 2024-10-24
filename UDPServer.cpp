@@ -199,11 +199,8 @@ void UDPServer::processChunkRequestMessage(std::stringstream& message, const Pee
                "Recebida requisição de chunks do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
                " para o arquivo '" + file_name + "'. Chunks solicitados: " + chunks_str);
 
-    // Envia cada chunk solicitado individualmente via TCP
-    for (int chunk : requested_chunks) {
-        // Chama a função sendChunk para enviar cada chunk individualmente
-        tcp_server.sendChunk(file_name, chunk, direct_sender_info);
-    }
+    // Envia os chunks via TCP
+    tcp_server.sendChunks(file_name, requested_chunks, direct_sender_info);
 }
 
 /**

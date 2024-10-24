@@ -66,7 +66,7 @@ public:
      * 
      * @param client_sockfd Socket do cliente conectado.
      */
-    void receiveChunk(int client_sockfd);
+    void receiveChunks(int client_sockfd);
 
     /**
      * @brief Transfere um ou mais chunks para o peer solicitante.
@@ -79,7 +79,7 @@ public:
      * @param chunk ID do chunk que deve ser transferido.
      * @param destination_info Informações sobre o peer que está solicitando os chunks, incluindo seu endereço IP e porta UDP (Porta TCP = Porta UDP + 1000).
      */
-    void sendChunk(const std::string& file_name, int chunk, const PeerInfo& destination_info);
+    void sendChunks(const std::string& file_name, const std::vector<int>& chunks, const PeerInfo& destination_info);
 };
 
 #endif // TCPSERVER_H
