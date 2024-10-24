@@ -142,7 +142,7 @@ void TCPServer::receiveChunks(int client_sockfd) {
         }
     }
 
-    // Fecha o socket do cliente
+    // Fecha o socket
     close(client_sockfd);
 }
 
