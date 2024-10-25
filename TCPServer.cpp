@@ -92,13 +92,15 @@ void TCPServer::receiveChunks(int client_sockfd) {
             if (control_message_size < 0) {
                 if (errno == EWOULDBLOCK || errno == EAGAIN) {
                     logMessage(LogType::INFO, "Timeout ao aguardar a mensagem de controle.");
-                    close(client_sockfd);
-                    return;
                 } else {
                     perror("Erro ao receber a mensagem de controle");
                 }
+                close(client_sockfd);
+                return;
             } else if (control_message_size == 0) {
                 logMessage(LogType::INFO, "Conexão fechada pelo cliente.");
+                close(client_sockfd);
+                return;
             }
 
             // Adiciona os bytes recebidos à mensagem de controle
@@ -143,22 +145,26 @@ void TCPServer::receiveChunks(int client_sockfd) {
                 if (chunk_bytes_received < 0) {
                     if (errno == EWOULDBLOCK || errno == EAGAIN) {
                         logMessage(LogType::INFO, "Timeout ao aguardar o chunk " + std::to_string(chunk_id) + ".");
-                        close(client_sockfd);
-                        return;
                     } else {
                         perror("Erro ao receber o chunk.");
                     }
+                    close(client_sockfd);
+                    return;
                 } else if (chunk_bytes_received == 0) {
                     logMessage(LogType::INFO, "Conexão fechada pelo cliente.");
+                    close(client_sockfd);
+                    return;
                 }
 
-                // Copia os dados recebidos para o buffer principal do chunk
-                std::copy(chunk_temp_buffer.begin(), chunk_temp_buffer.begin() + chunk_bytes_received, chunk_buffer.begin() + chunk_total_bytes_received);
+                if (chunk_bytes_received > 0) {
+                    // Copia os dados recebidos para o buffer principal do chunk
+                    std::copy(chunk_temp_buffer.begin(), chunk_temp_buffer.begin() + chunk_bytes_received, chunk_buffer.begin() + chunk_total_bytes_received);
 
-                // Atualiza o total de bytes recebidos
-                chunk_total_bytes_received += chunk_bytes_received;
+                    // Atualiza o total de bytes recebidos
+                    chunk_total_bytes_received += chunk_bytes_received;
 
-                logMessage(LogType::INFO, "Recebido " + std::to_string(chunk_bytes_received) + " bytes do chunk " + std::to_string(chunk_id) + " de " + client_ip + ":" + std::to_string(client_port) + " (" + std::to_string(chunk_total_bytes_received) + "/" + std::to_string(chunk_size) + " bytes).");
+                    logMessage(LogType::INFO, "Recebido " + std::to_string(chunk_bytes_received) + " bytes do chunk " + std::to_string(chunk_id) + " de " + client_ip + ":" + std::to_string(client_port) + " (" + std::to_string(chunk_total_bytes_received) + "/" + std::to_string(chunk_size) + " bytes).");
+                }
             }
 
             // Verifica se todos os bytes esperados foram recebidos
