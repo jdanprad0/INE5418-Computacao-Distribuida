@@ -224,8 +224,8 @@ void TCPServer::sendChunks(const std::string& file_name, const std::vector<int>&
         // Obtém o caminho do chunk
         std::string chunk_path = file_manager.getChunkPath(file_name, chunk);
 
-        // Abre o arquivo em modo binário e posiciona o cursor no final para obter o tamanho
-        std::ifstream chunk_file(chunk_path, std::ios::binary | std::ios::ate);
+        // Abre o arquivo em modo binário, somente leitura e posiciona o cursor no final para obter o tamanho
+        std::ifstream chunk_file(chunk_path, std::ios::binary | std::ios::ate | std::ios::in);
         
         // Verifica se o arquivo foi encontrado/aberto
         if (!chunk_file.is_open()) {
