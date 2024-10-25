@@ -215,6 +215,17 @@ public:
      * @param neighbors Vizinhos do peer (IP e Porta).
      */
     void setUDPNeighbors(const std::vector<std::tuple<std::string, int>>& neighbors);
+
+    /**
+     * @brief Obtém o endereço IP e a porta do peer a partir de uma estrutura sockaddr_in.
+     * 
+     * Esta função recebe a estrutura `sockaddr_in` contendo as informações do peer (IP e porta)
+     * e retorna uma tupla contendo o endereço IP e a porta.
+     * 
+     * @param sender_addr Estrutura sockaddr_in contendo as informações do peer.
+     * @return std::tuple<std::string, int> Tupla contendo o endereço IP (string) e a porta (int).
+     */
+    std::tuple<std::string, int> getSenderAddressInfo(const sockaddr_in& sender_addr);
 };
 
 #endif // UDPSERVER_H

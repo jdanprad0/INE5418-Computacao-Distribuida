@@ -28,8 +28,8 @@ TCPServer::TCPServer(const std::string& ip, int port, int peer_id, int transfer_
         exit(EXIT_FAILURE);
     }
 
-    // Coloca o socket em modo de escuta com até 5 por vez
-    if (listen(server_sockfd, 10) < 0) {
+    // Coloca o socket em modo de escuta
+    if (listen(server_sockfd, Constants::TCP_MAX_PENDING_CONNECTIONS) < 0) {
         perror("Erro ao escutar no socket TCP");
         exit(EXIT_FAILURE);
     }
@@ -46,11 +46,12 @@ void TCPServer::run() {
         struct sockaddr_in client_addr{};
         socklen_t addr_len = sizeof(client_addr);
         
-        int client_sockfdfd = accept(server_sockfd, (struct sockaddr*)&client_addr, &addr_len);
+        // Aceita a conexão do cliente
+        int client_sockfd = accept(server_sockfd, (struct sockaddr*)&client_addr, &addr_len);
 
-        if (client_sockfdfd >= 0) {
-            // Thread para receber o chunk
-            std::thread(&TCPServer::receiveChunks, this, client_sockfdfd).detach();
+        if (client_sockfd >= 0) {
+            // Cria uma thread para lidar com o recebimento dos chunks
+            std::thread(&TCPServer::receiveChunks, this, client_sockfd).detach();
         } else {
             perror("Erro ao aceitar conexão TCP");
         }
@@ -61,99 +62,126 @@ void TCPServer::run() {
  * @brief Recebe um chunk do cliente e o salva.
  */
 void TCPServer::receiveChunks(int client_sockfd) {
-    // Cria um buffer com ponteiro nulo para receber os chunks
-    char* file_buffer = nullptr;
-
-    // Cria uma variável que recebe quantos bytes eu recebi na comunicação TCP
-    size_t bytes_received;
+    // Obtém o IP e porta do cliente
+    auto [client_ip, client_port] = getClientAddressInfo(client_sockfd);
     
-    // Cria um buffer para receber a mensagem de controle
-    char request_buffer[256];
-
     // Continua a leitura até o cliente fechar a conexão
     while (true) {
-        // Recebe a mensagem de controle
-        ssize_t request_size = recv(client_sockfd, request_buffer, sizeof(request_buffer), 0);
-        
-        if (request_size <= 0) {
-            if (request_size == 0) {
-                logMessage(LogType::INFO, "Conexão fechada pelo cliente.");
-            } else {
-                perror("Erro ao receber dados via TCP");
+        // Armazena a mensagem de controle recebida
+        std::string control_message = "";
+
+        // Controle de quantos bytes da mensagem de controle foram recebidos
+        size_t control_message_total_bytes_received = 0;
+
+        // Quantidade de bytes recebidos ao esperar a totalidade da mensagem de controle
+        ssize_t control_message_size = 0;
+
+        // Recebe a mensagem de controle em pedaços
+        do {
+            // Buffer para armazenar os dados da mensagem de controle
+            char control_message_buffer[Constants::TCP_CONTROL_MESSAGE_MAX_SIZE] = {0};
+
+            // Recebe os dados
+            control_message_size = recv(client_sockfd, control_message_buffer, Constants::TCP_CONTROL_MESSAGE_MAX_SIZE, 0);
+
+            // Verifica se houve erro ou o cliente fechou a conexão
+            if (control_message_size <= 0) {
+                if (control_message_size == 0) {
+                    logMessage(LogType::INFO, "Conexão fechada pelo cliente.");
+                } else {
+                    perror("Erro ao receber dados via TCP");
+                }
+                return; // Sai da função em caso de erro ou término da conexão
             }
-            break; // Encerra o loop
-        }
+
+            // Adiciona os bytes recebidos à mensagem de controle
+            control_message.append(control_message_buffer, control_message_size);
+            control_message_total_bytes_received += control_message_size;
+
+        } while (control_message_total_bytes_received < Constants::TCP_CONTROL_MESSAGE_MAX_SIZE); // Continua recebendo até que a mensagem de controle esteja completa
+
+        logMessage(LogType::INFO, "Mensagem de controle '" + control_message + "' recebida de " + client_ip + ":" + std::to_string(client_port));
         
-        // Coloca um marcador de final de string no final do conteúdo do buffer
-        request_buffer[request_size] = '\0';
+        // Transforma a string da mensagem de controle em um stream para extração
+        std::stringstream control_message_stream(control_message);
 
-        // Passa o conteúdo do buffer para a string request
-        std::string request(request_buffer);
-
-        // Transforma a string request em um stream de string para leitura
-        std::stringstream ss(request);
-
-        // Variáveis para receber o conteúdo da string
+        // Variáveis para armazenar os valores da mensagem de controle
         std::string command, file_name;
         int chunk_id, transfer_speed;
         size_t chunk_size;
 
-        // Pega cada conteúdo da mensagem de controle atribuindo às variáveis
-        ss >> command >> file_name >> chunk_id >> transfer_speed >> chunk_size;
+        // Extrai os valores da mensagem de controle
+        control_message_stream >> command >> file_name >> chunk_id >> transfer_speed >> chunk_size;
 
-        // Verifica se é uma mensagem que indica recebimento de chunk
+        // Verifica se o comando é "PUT", que indica recebimento de chunk de arquivo
         if (command == "PUT") {
-            // Redimenciona o tamanho do buffer com base na velocidade de transferência do cliente
-            file_buffer = new char[transfer_speed];
+            // Cria um buffer para armazenar o chunk completo
+            std::vector<char> chunk_buffer(chunk_size, 0);
 
-            // Cria e abre um arquivo para o chunk em modo binário para escrita
-            std::ofstream chunk_file(file_manager.getChunkPath(file_name, chunk_id), std::ios::binary);
+            // Controle de quantos bytes do chunk foram recebidos
+            size_t chunk_total_bytes_received = 0;
 
-            // Verifica se o arquivo foi encontrado/aberto
-            if (!chunk_file.is_open()) {
-                logMessage(LogType::ERROR, "Não foi possível criar o arquivo para o chunk " + std::to_string(chunk_id));
-                delete[] file_buffer;
-                break;
+            // Continua recebendo o chunk até alcançar o tamanho esperado
+            while (chunk_total_bytes_received < chunk_size) {
+                // Quantidade de bytes recebidos ao esperar a totalidade do chunk
+                ssize_t chunk_bytes_received = 0;
+
+                // Buffer temporário para armazenar os dados recebidos
+                std::vector<char> chunk_temp_buffer(transfer_speed, 0);
+
+                // Recebe os dados do chunk
+                chunk_bytes_received = recv(client_sockfd, chunk_temp_buffer.data(), transfer_speed, 0);
+
+                // Verifica se houve erro ao receber o chunk
+                if (chunk_bytes_received <= 0) {
+                    logMessage(LogType::ERROR, "Erro ao receber o chunk.");
+                    break;
+                }
+
+                // Copia os dados recebidos para o buffer principal do chunk
+                std::copy(chunk_temp_buffer.begin(), chunk_temp_buffer.begin() + chunk_bytes_received, chunk_buffer.begin() + chunk_total_bytes_received);
+
+                // Atualiza o total de bytes recebidos
+                chunk_total_bytes_received += chunk_bytes_received;
+
+                logMessage(LogType::INFO, "Recebido " + std::to_string(chunk_bytes_received) + " bytes do chunk " + std::to_string(chunk_id) + " de " + client_ip + ":" + std::to_string(client_port) + " (" + std::to_string(chunk_total_bytes_received) + "/" + std::to_string(chunk_size) + " bytes).");
             }
 
-            // Controle de quantos bytes já foram recebidos
-            size_t total_bytes_received = 0;
+            // Verifica se todos os bytes esperados foram recebidos
+            if (chunk_total_bytes_received >= chunk_size) {
+                logMessage(LogType::SUCCESS, "SUCESSO AO RECEBER O CHUNK " + std::to_string(chunk_id) + " DO ARQUIVO " + file_name + " de " + client_ip + ":" + std::to_string(client_port));
 
-            // Recebe o chunk até que o número total de bytes seja alcançado
-            while (total_bytes_received < chunk_size && (bytes_received = recv(client_sockfd, file_buffer, transfer_speed, 0)) > 0) {
-                chunk_file.write(file_buffer, bytes_received);
-                total_bytes_received += bytes_received;
+                // Obtém o caminho/nome para salvar o chunk
+                std::string directory = file_manager.getChunkPath(file_name, chunk_id);
 
-                logMessage(LogType::INFO, "Recebido " + std::to_string(bytes_received) + " bytes do chunk " + std::to_string(chunk_id) + " (" + std::to_string(total_bytes_received) + "/" + std::to_string(chunk_size) + " bytes).");
+                // Cria o arquivo em modo binário
+                std::ofstream chunk_file(directory, std::ios::binary);
+                
+                // Verifica se o arquivo foi aberto corretamente
+                if (!chunk_file.is_open()) {
+                    logMessage(LogType::ERROR, "Não foi possível criar o arquivo para o chunk " + std::to_string(chunk_id));
+                    break;
+                }
 
-                // Utilizado para simular a velocidade de transferência
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            }
+                // Escreve o conteúdo do buffer no arquivo
+                chunk_file.write(chunk_buffer.data(), chunk_buffer.size());
 
-            if (total_bytes_received == chunk_size) {
-                logMessage(LogType::SUCCESS, "SUCESSO AO RECEBER O CHUNK " + std::to_string(chunk_id) + " DO ARQUIVO " + file_name);
+                // Fecha o arquivo após a escrita
+                chunk_file.close();
             } else {
-                logMessage(LogType::ERROR, "Falha ao receber o chunk " + std::to_string(chunk_id) + ". Bytes esperados: " + std::to_string(chunk_size) + ", recebidos: " + std::to_string(total_bytes_received));
+                logMessage(LogType::ERROR, "Falha ao receber o chunk " + std::to_string(chunk_id) + " de " + client_ip + ":" + std::to_string(client_port) + ". Bytes esperados: " + std::to_string(chunk_size) + ", recebidos: " + std::to_string(chunk_total_bytes_received));
             }
-
-            // Fecha o arquivo e libera o buffer
-            chunk_file.close();
-            delete[] file_buffer;
         }
     }
 
-    // Fecha o socket
+    // Fecha o socket após terminar
     close(client_sockfd);
 }
-
 
 /**
  * @brief Envia um ou mais chunks para o peer solicitante.
  */
 void TCPServer::sendChunks(const std::string& file_name, const std::vector<int>& chunks, const PeerInfo& destination_info) {
-    // Cria um buffer com base na minha velocidade
-    char* file_buffer = new char[transfer_speed];
-
     // Cria um novo socket para a conexão
     int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (client_sockfd < 0) {
@@ -162,7 +190,7 @@ void TCPServer::sendChunks(const std::string& file_name, const std::vector<int>&
     }
 
     // Estrutura para armazenar informações do endereço do destinatário
-    struct sockaddr_in destination_addr = createSockAddr(destination_info.ip.c_str(), destination_info.port + 1000);
+    struct sockaddr_in destination_addr = createSockAddr(destination_info.ip.c_str(), destination_info.port);
 
     // Tenta se conectar ao destinatário
     if (connect(client_sockfd, (struct sockaddr*)&destination_addr, sizeof(destination_addr)) < 0) {
@@ -190,47 +218,95 @@ void TCPServer::sendChunks(const std::string& file_name, const std::vector<int>&
 
         // Volta para o início do arquivo
         chunk_file.seekg(0);
+        
+        // Cria um buffer em memória para armazenar todos os bytes do arquivo
+        std::vector<char> file_buffer(chunk_size);
+        
+        // Lê o arquivo inteiro para o buffer
+        chunk_file.read(file_buffer.data(), chunk_size);
 
-        // Envia a mensagem de controle antes de transferir o chunk
+        // Fecha o arquivo após a leitura
+        chunk_file.close();
+
+        // Cria a mensagem de controle
         std::stringstream ss;
-
-        // Formato da mensagem
-        // PUT <arquivo> <chunk> <velocidade> <tamanho do chunk>
-        // Exemplo: PUT file.txt 0 200 10240000
         ss << "PUT " << file_name << " " << chunk << " " << transfer_speed << " " << chunk_size;
 
-        // Transforma a mensagem em uma string
         std::string control_message = ss.str();
 
-        // Envia a mensagem de controle
-        ssize_t bytes_sent = send(client_sockfd, control_message.c_str(), control_message.size(), 0); // Envia a mensagem de controle
-        
+        // Cria um buffer de tamanho fixo e preenche com 0s
+        char control_message_buffer[Constants::TCP_CONTROL_MESSAGE_MAX_SIZE] = {0};
+
+        // Copia a mensagem de controle para o buffer fixo
+        std::memcpy(control_message_buffer, control_message.c_str(), std::min(control_message.size(), sizeof(control_message_buffer) - 1));
+
+        // Adiciona um caractere nulo no final da mensagem para garantir o fim da string
+        control_message_buffer[control_message.size()] = '\0';
+
+        // Envia a mensagem de controle de tamanho fixo
+        ssize_t bytes_sent = send(client_sockfd, control_message_buffer, Constants::TCP_CONTROL_MESSAGE_MAX_SIZE, 0); 
+
         if (bytes_sent < 0) {
             perror("Erro ao enviar a mensagem de controle.");
             break;
         }
 
-        // Envia o chunk em blocos, respeitando a velocidade de transferência
-        while (chunk_file) {
-            chunk_file.read(file_buffer, transfer_speed);
-            size_t bytes_to_send = chunk_file.gcount();
+        // Variáveis para o controle de envio
+        size_t total_bytes_sent = 0;
+        size_t bytes_to_send;
 
-            bytes_sent = send(client_sockfd, file_buffer, bytes_to_send, 0);
+        // Envia o chunk em blocos, respeitando a velocidade de transferência
+        while (total_bytes_sent < chunk_size) {
+            // Calcula quantos bytes enviar no próximo bloco
+            bytes_to_send = std::min(static_cast<size_t>(transfer_speed), chunk_size - total_bytes_sent);
+
+            // Envia os bytes da estrutura em memória (file_buffer)
+            ssize_t bytes_sent = send(client_sockfd, file_buffer.data() + total_bytes_sent, bytes_to_send, 0);
+
             if (bytes_sent < 0) {
                 perror("Erro ao enviar o chunk.");
                 break;
             }
 
-            logMessage(LogType::INFO, "Enviado " + std::to_string(bytes_sent) + " bytes do chunk " + std::to_string(chunk) + " do arquivo " + file_name);
+            total_bytes_sent += bytes_sent;
 
-            // Utilizado para simular a velocidade de transferência
+            logMessage(LogType::CHUNK_SENT, "Enviado " + std::to_string(bytes_sent) + " bytes do chunk " + std::to_string(chunk) + " do arquivo " + file_name + " para " + destination_info.ip + ":" + std::to_string(destination_info.port));
+
+            // Simula a velocidade de transferência
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
 
-        chunk_file.close();
-        logMessage(LogType::SUCCESS, "SUCESSO AO ENVIAR O CHUNK " + std::to_string(chunk) + " DO ARQUIVO " + file_name);
+        logMessage(LogType::SUCCESS, "SUCESSO AO ENVIAR O CHUNK " + std::to_string(chunk) + " DO ARQUIVO " + file_name + " para " + destination_info.ip + ":" + std::to_string(destination_info.port));
     }
 
+    // Fecha o socket após enviar todos os chunks
     close(client_sockfd);
-    delete[] file_buffer;
+}
+
+/**
+ * @brief Obtém o endereço IP e a porta do cliente conectado via socket.
+ */
+std::tuple<std::string, int> TCPServer::getClientAddressInfo(int client_sockfd) {
+    // Declara uma struct para armazenar o endereço do cliente
+    struct sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
+
+    // Usa getpeername() para obter as informações do cliente conectado
+    if (getpeername(client_sockfd, (struct sockaddr*)&client_addr, &addr_len) == 0) {
+        // Buffer para armazenar o endereço IP do cliente
+        char client_ip[INET_ADDRSTRLEN];
+
+        // Converte o IP para uma string legível
+        inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, sizeof(client_ip));
+
+        // Obtém a porta do cliente
+        int client_port = ntohs(client_addr.sin_port);
+
+        // Retorna a tupla contendo o IP e a porta
+        return std::make_tuple(std::string(client_ip), client_port);
+    } else {
+        // Se houver um erro ao obter as informações, retorna uma tupla com valores padrão
+        perror("Erro ao obter IP e porta do cliente");
+        return std::make_tuple("Erro", -1);
+    }
 }

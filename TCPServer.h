@@ -80,6 +80,18 @@ public:
      * @param destination_info Informações sobre o peer que está solicitando os chunks, incluindo seu endereço IP e porta UDP (Porta TCP = Porta UDP + 1000).
      */
     void sendChunks(const std::string& file_name, const std::vector<int>& chunks, const PeerInfo& destination_info);
+
+    /**
+     * @brief Obtém o endereço IP e a porta do cliente conectado via socket.
+     * 
+     * Esta função utiliza o descritor de socket do cliente para obter o endereço IP e a porta
+     * através de `getpeername()`. Ela retorna essas informações em uma tupla contendo o IP 
+     * como `std::string` e a porta como `int`.
+     * 
+     * @param client_sockfd Descritor de socket do cliente conectado.
+     * @return std::tuple<std::string, int> Tupla contendo o endereço IP (string) e a porta (int).
+     */
+    std::tuple<std::string, int> getClientAddressInfo(int client_sockfd);
 };
 
 #endif // TCPSERVER_H

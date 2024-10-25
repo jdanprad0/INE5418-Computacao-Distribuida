@@ -16,6 +16,8 @@ enum class LogType {
     REQUEST_SENT,
     RESPONSE_RECEIVED,
     RESPONSE_SENT,
+    CHUNK_SENT,
+    CHUNK_RECEIVED,
     SUCCESS,
     OTHER // Para outros tipos não especificados
 };

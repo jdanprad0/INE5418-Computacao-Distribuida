@@ -39,6 +39,12 @@ void logMessage(LogType type, const std::string& message) {
             case LogType::REQUEST_SENT:
                 std::cout << Constants::PINK << "[REQUEST_SENT] " << message;
                 break;
+            case LogType::CHUNK_RECEIVED:
+                std::cout << Constants::GOLD << "[CHUNK_RECEIVED] " << message;
+                break;
+            case LogType::CHUNK_SENT:
+                std::cout << Constants::AQUA << "[CHUNK_SENT] " << message;
+                break;
             case LogType::SUCCESS:
                 std::cout << Constants::GREEN << "[SUCCESS] " << message;
                 break;
@@ -56,6 +62,9 @@ void logMessage(LogType type, const std::string& message) {
     }
 }
 
+/**
+ * @brief Cria e configura uma estrutura sockaddr_in com base no IP e na porta fornecidos.
+ */
 struct sockaddr_in createSockAddr(const std::string& ip, int port) {
     // Estrutura para armazenar informações do endereço do socket
     struct sockaddr_in addr{};

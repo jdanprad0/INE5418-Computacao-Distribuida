@@ -59,12 +59,7 @@ void UDPServer::run() {
             buffer[bytes_received] = '\0';
             std::string message(buffer);
 
-            // Identifica o IP do peer que enviou a mensagem
-            char direct_sender_ip[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &(sender_addr.sin_addr), direct_sender_ip, INET_ADDRSTRLEN);
-
-            // Obtém a porta do peer
-            int direct_sender_port = ntohs(sender_addr.sin_port);
+            auto [direct_sender_ip, direct_sender_port] = getSenderAddressInfo(sender_addr);
 
             // Cria uma instância de PeerInfo para armazenar o IP e a porta do remetente
             PeerInfo direct_sender_info(std::string(direct_sender_ip), direct_sender_port);
@@ -124,7 +119,7 @@ void UDPServer::processChunkDiscoveryMessage(std::stringstream& message, const P
     chunk_requester_port = std::stoi(chunk_requester_ip_port.substr(colon_pos + 1));
 
     // Só manda mensagem de descoberta de mensagens que não foi o próprio peer que enviou
-    if (chunk_requester_ip != ip) {
+    if (chunk_requester_ip != ip || chunk_requester_port != port) {
         logMessage(LogType::DISCOVERY_RECEIVED,
                 "Recebido pedido de descoberta do arquivo '" + file_name + "' com TTL " + std::to_string(ttl) +
                 " do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
@@ -157,7 +152,11 @@ void UDPServer::processChunkResponseMessage(std::stringstream& message, const Pe
 
     int chunk;
     while (message >> chunk) {
-        chunks_received.push_back(chunk);
+        // Só adiciona no map chunk_location_info os chunks que eu não possuo
+        bool has_chunk = file_manager.hasChunk(file_name, chunk);
+        if (!has_chunk) {
+            chunks_received.push_back(chunk);
+        }
     }
 
     std::stringstream chunks_ss;
@@ -165,8 +164,10 @@ void UDPServer::processChunkResponseMessage(std::stringstream& message, const Pe
         chunks_ss << chunk << " ";
     }
 
-    // Armazena as respostas recebidas no mapa
-    file_manager.storeChunkLocationInfo(file_name, chunks_received, direct_sender_info.ip, direct_sender_info.port, transfer_speed);
+    if (chunks_received.size() > 0) {
+        // Armazena as respostas recebidas no mapa
+        file_manager.storeChunkLocationInfo(file_name, chunks_received, direct_sender_info.ip, direct_sender_info.port, transfer_speed);
+    }
 
     logMessage(LogType::RESPONSE_RECEIVED,
                "Recebida resposta do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
@@ -199,8 +200,11 @@ void UDPServer::processChunkRequestMessage(std::stringstream& message, const Pee
                "Recebida requisição de chunks do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
                " para o arquivo '" + file_name + "'. Chunks solicitados: " + chunks_str);
 
+    // Por convenção neste trabalho, a porta de recebimento de mensagens TCP = porta UDP + 1000
+    PeerInfo direct_sender_info_tcp = PeerInfo(direct_sender_info.ip, direct_sender_info.port + 1000);
+
     // Envia os chunks via TCP
-    tcp_server.sendChunks(file_name, requested_chunks, direct_sender_info);
+    tcp_server.sendChunks(file_name, requested_chunks, direct_sender_info_tcp);
 }
 
 /**
@@ -372,4 +376,21 @@ void UDPServer::setUDPNeighbors(const std::vector<std::tuple<std::string, int>>&
 
         udpNeighbors.emplace_back(neighbor_ip, neighbor_port);
     }
+}
+
+/**
+ * @brief Obtém o endereço IP e a porta do peer a partir de uma estrutura sockaddr_in.
+ */
+std::tuple<std::string, int> UDPServer::getSenderAddressInfo(const sockaddr_in& sender_addr) {
+    // Buffer para armazenar o endereço IP do peer
+    char peer_ip[INET_ADDRSTRLEN];
+
+    // Converte o IP do formato binário para string
+    inet_ntop(AF_INET, &(sender_addr.sin_addr), peer_ip, INET_ADDRSTRLEN);
+
+    // Obtém a porta do peer e converte do formato de rede para formato de host
+    int peer_port = ntohs(sender_addr.sin_port);
+
+    // Retorna o IP e a porta como uma tupla
+    return std::make_tuple(std::string(peer_ip), peer_port);
 }

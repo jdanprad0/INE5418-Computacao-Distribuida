@@ -13,9 +13,6 @@ int main(int argc, char* argv[]) {
     // Limpa o terminal antes de iniciar o programa
     system("clear");
 
-    // Mata todos os processos nas portas que serão utilizadas (6000 a 6025 para UDP e 7000 a 7025 para TCP)
-    system("lsof -ti :6000-6025,7000-7025 | xargs -r kill -9 2>/dev/null");
-
     // Configuração para flush automático após cada operação de saída
     std::cout.setf(std::ios::unitbuf);
 
@@ -39,6 +36,9 @@ int main(int argc, char* argv[]) {
     auto neighbors = expand_topology[peer_id];
     int tcp_port = udp_port + 1000; // Exemplo: porta TCP é a UDP + 1000
 
+    // Mata os processos nas portas que serão utilizadas para comunicação TCP e UDP
+    system(("lsof -ti :" + std::to_string(tcp_port) + "," + std::to_string(udp_port) + " | xargs -r kill -9 2>/dev/null").c_str());
+    //lsof -ti :6000-6025,7000-7025 | xargs -r kill -9 2>/dev/null
     // Cria o peer
     Peer peer(peer_id, ip, udp_port, tcp_port, speed, neighbors);
 
