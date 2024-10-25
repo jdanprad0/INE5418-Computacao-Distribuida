@@ -34,7 +34,7 @@ public:
      * @brief Construtor da classe Peer.
      * 
      * Inicializa um peer na rede P2P com o ID, IP, portas UDP e TCP, velocidade de 
-     * transferência e informações sobre seus vizinhos.
+     * transferência em bytes/segundo e informações sobre seus vizinhos.
      * 
      * @param id Identificador do peer.
      * @param ip Endereço IP do peer.

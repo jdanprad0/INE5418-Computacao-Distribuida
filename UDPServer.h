@@ -23,11 +23,11 @@
  */
 class UDPServer {
 private:
-    const std::string ip;                                   ///< Endereço IP do peer atual file_manager.
-    const int port;                                         ///< Porta UDP que o peer está utilizando para a comunicação file_manager.
-    const int peer_id;                                      ///< Identificador único (ID) do peer file_manager.
-    const int transfer_speed;                               ///< Velocidade de transferência de dados file_manager.
-    int sockfd;                                             ///< Descriptor do socket UDP utilizado para a comunicação (não const porque pode ser alterado).
+    const std::string ip;                                   ///< Endereço IP do peer atual.
+    const int port;                                         ///< Porta UDP que o peer está utilizando para a comunicação.
+    const int peer_id;                                      ///< Identificador único (ID) do peer.
+    const int transfer_speed;                               ///< Velocidade de transferência de dados em bytes/segundo.
+    int sockfd;                                             ///< Descriptor do socket UDP utilizado para a comunicação.
     std::vector<std::tuple<std::string, int>> udpNeighbors; ///< Lista contendo os vizinhos diretos do peer (endereços IP e portas UDP).
     std::map<std::string, bool> processing_active_map;      ///< Mapa para controlar o estado de processamento de cada arquivo. Mapeia file_name para processing_active.
     std::mutex processing_mutex;                            ///< Mutex para proteger o acesso ao mapa
@@ -45,7 +45,7 @@ public:
      * @param ip Endereço IP do peer.
      * @param port Porta UDP usada para a comunicação.
      * @param peer_id ID do peer na rede P2P.
-     * @param transfer_speed Velocidade de transferência de dados do peer na rede P2P.
+     * @param transfer_speed Velocidade de transferência de dados em bytes/segundo do peer na rede P2P.
      * @param file_manager Referência ao gerenciador de arquivos do peer.
      * @param tcp_server Referência ao servidor TCP do peer.
      */
@@ -200,7 +200,7 @@ public:
      * Esta função configura o endereço (IP e porta) e envia uma mensagem UDP para o peer especificado.
      * 
      * @param ip O endereço IP do peer para o qual a mensagem será enviada.
-     * @param port A porta do peer para o qual a mensagem será enviada.
+     * @param port A porta UDP do peer para o qual a mensagem será enviada.
      * @param message A mensagem que será enviada.
      * @return O número de bytes enviados, ou um valor negativo em caso de erro.
      */

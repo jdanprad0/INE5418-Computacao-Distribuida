@@ -35,6 +35,62 @@ void FileManager::loadLocalChunks() {
     }
 }
 
+std::tuple<std::string, int, int> FileManager::loadMetadata(const std::string& metadata_file) {
+    // Caminho do arquivo de metadados
+    std::string file_path = Constants::BASE_PATH + metadata_file;
+    std::ifstream meta_file(file_path);
+    
+    if (!meta_file.is_open()) {
+        logMessage(LogType::ERROR, "Erro ao abrir o arquivo de metadados.");
+        return {"", -1, -1}; // Retorno padrão em caso de erro
+    }
+
+    std::string file_name;
+    int total_chunks;
+    int initial_ttl;
+
+    // Lê os dados do arquivo de metadados
+    std::getline(meta_file, file_name);
+    meta_file >> total_chunks;
+    meta_file >> initial_ttl;
+    meta_file.close();
+
+    return {file_name, total_chunks, initial_ttl}; // Retorna os valores em uma tupla
+}
+
+/**
+ * @brief Inicializa ou atualiza o número de chunks de um arquivo no mapa de arquivos do peer.
+ */
+void FileManager::initializeFileChunks(const std::string& file_name, int total_chunks) {
+    file_chunks[file_name] = total_chunks;
+}
+
+/**
+ * @brief Inicializa a estrutura para armazenar informações sobre onde encontrar cada chunk.
+ */
+void FileManager::initializeChunkLocationInfo(const std::string& file_name) {
+    int total_chunks = file_chunks[file_name];
+
+    // Verifica se já existe uma entrada para o file_name
+    if (chunk_location_info.find(file_name) == chunk_location_info.end()) {
+        // Inicializa a lista de chunks, onde cada chunk_id contém um vetor vazio de ChunkLocationInfo
+        chunk_location_info[file_name].resize(total_chunks); // Inicializa com vetores vazios para cada chunk
+    }
+}
+
+/**
+ * @brief Inicializa o vetor de mutexes para cada chunk de um arquivo.
+ */
+void FileManager::initializeChunkMutexes(const std::string& file_name) {
+    int total_chunks = file_chunks[file_name];
+
+    // Verifica se o file_name já existe no mapa
+    if (chunk_location_info_mutex.find(file_name) == chunk_location_info_mutex.end()) {
+        // Se não existir, inicializa um vetor de mutexes com o número total de chunks
+        chunk_location_info_mutex[file_name] = std::vector<std::mutex>(total_chunks);
+    }
+}
+
 /**
  * @brief Verifica se possui um chunk específico de um arquivo.
  */
@@ -54,17 +110,30 @@ std::string FileManager::getChunkPath(const std::string& file_name, int chunk) {
  */
 void FileManager::saveChunk(const std::string& file_name, int chunk, const char* data, size_t size) {
     std::string path = getChunkPath(file_name, chunk);
+
     std::ofstream outfile(path, std::ios::binary);
+    if (!outfile.is_open()) {
+        logMessage(LogType::ERROR, "Não foi possível criar o arquivo para o chunk " + std::to_string(chunk));
+        return;
+    }
+                
     outfile.write(data, size);
+    if (!outfile) {
+        logMessage(LogType::ERROR, "Erro ao escrever os dados no arquivo do chunk " + std::to_string(chunk));
+    }
     outfile.close();
 
+    // Armazena o chunk salvo na lista de chunks que possuo
     local_chunks[file_name].insert(chunk);
 }
+
 
 /**
  * @brief Verifica se todos os chunks de um arquivo foram recebidos.
  */
-bool FileManager::hasAllChunks(const std::string& file_name, int total_chunks) {
+bool FileManager::hasAllChunks(const std::string& file_name) {
+    int total_chunks = file_chunks[file_name];
+
     return local_chunks[file_name].size() == static_cast<size_t>(total_chunks);
 }
 
@@ -86,49 +155,32 @@ std::vector<int> FileManager::getAvailableChunks(const std::string& file_name) {
 /**
  * @brief Concatena todos os chunks para formar o arquivo completo.
  */
-void FileManager::assembleFile(const std::string& file_name, int total_chunks) {
-    std::string output_path = directory + "/" + file_name;
-    std::ofstream output_file(output_path, std::ios::binary);
+void FileManager::assembleFile(const std::string& file_name) {
+    bool has_all_chunks = hasAllChunks(file_name);
 
-    for (int i = 0; i < total_chunks; ++i) {
-        std::string chunk_path = getChunkPath(file_name, i);
-        std::ifstream chunk_file(chunk_path, std::ios::binary);
+    if (has_all_chunks) {
+        int total_chunks = file_chunks[file_name];
 
-        if (!chunk_file.is_open()) {
-            std::cerr << "Erro ao abrir o chunk: " << chunk_path << std::endl;
-            return;
+        std::string output_path = directory + "/" + file_name;
+        std::ofstream output_file(output_path, std::ios::binary);
+
+        for (int i = 0; i < total_chunks; ++i) {
+            std::string chunk_path = getChunkPath(file_name, i);
+            std::ifstream chunk_file(chunk_path, std::ios::binary | std::ios::in);
+
+            if (!chunk_file.is_open()) {
+                logMessage(LogType::ERROR, "Erro ao abrir o chunk " + chunk_path);
+                return;
+            }
+
+            output_file << chunk_file.rdbuf();
+            chunk_file.close();
         }
 
-        output_file << chunk_file.rdbuf();
-        chunk_file.close();
-    }
-
-    output_file.close();
-    std::cout << "Arquivo " << file_name << " montado com sucesso!" << "\n" << std::endl;
-}
-
-/**
- * @brief Inicializa a estrutura para armazenar informações sobre onde encontrar cada chunk.
- */
-void FileManager::initializeChunkLocationInfo(const std::string& file_name, int total_chunks) {
-    // Verifica se já existe uma entrada para o file_name
-    if (chunk_location_info.find(file_name) == chunk_location_info.end()) {
-        // Inicializa a lista de chunks, onde cada chunk_id contém um vetor vazio de ChunkLocationInfo
-        chunk_location_info[file_name].resize(total_chunks); // Inicializa com vetores vazios para cada chunk
+        output_file.close();
+        displaySuccessMessage(file_name);
     }
 }
-
-/**
- * @brief Inicializa o vetor de mutexes para cada chunk de um arquivo.
- */
-void FileManager::initializeChunkMutexes(const std::string& file_name, int total_chunks) {
-    // Verifica se o file_name já existe no mapa
-    if (chunk_location_info_mutex.find(file_name) == chunk_location_info_mutex.end()) {
-        // Se não existir, inicializa um vetor de mutexes com o número total de chunks
-        chunk_location_info_mutex[file_name] = std::vector<std::mutex>(total_chunks);
-    }
-}
-
 
 /**
  * @brief Armazena informações de chunks recebidos para um arquivo específico.
@@ -193,4 +245,41 @@ std::unordered_map<std::string, std::vector<int>> FileManager::selectPeersForChu
         }
     }
     return chunks_by_peer;
+}
+
+void FileManager::displaySuccessMessage(const std::string& file_name) {
+    // Definição das cores do arco-íris em ANSI
+    std::string colors[] = {
+        Constants::RED,
+        Constants::YELLOW,
+        Constants::GREEN,
+        Constants::BLUE,
+        Constants::MAGENTA,
+        Constants::RED,
+    };
+
+    // Mensagem central em branco
+    std::string message = "Arquivo " + file_name + " montado com sucesso!";
+    int width = message.length() + 8;
+
+    // Exibe as bordas coloridas do arco-íris
+    for (int i = 0; i < 3; ++i) {
+        std::cout << colors[i] << std::string(width, '#') << Constants::RESET << "\n";
+    }
+
+    // Moldura interna (superior)
+    std::cout << colors[3] << "###" << colors[4] << std::string(width - 6, ' ') << colors[3] << "###" << Constants::RESET << "\n";
+
+    // Mensagem central em branco
+    std::cout << colors[3] << "### " << Constants::RESET << message << colors[3] << " ###" << Constants::RESET << "\n";
+
+    // Moldura interna (inferior)
+    std::cout << colors[3] << "###" << colors[4] << std::string(width - 6, ' ') << colors[3] << "###" << Constants::RESET << "\n";
+
+    // Bordas coloridas do arco-íris abaixo da mensagem
+    for (int i = 0; i < 3; ++i) {
+        std::cout << colors[i] << std::string(width, '#') << Constants::RESET << "\n";
+    }
+
+    std::cout << "\n";
 }

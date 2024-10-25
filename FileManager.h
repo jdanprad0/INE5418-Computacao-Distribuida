@@ -13,13 +13,13 @@
  * @brief Estrutura que armazena as informações sobre um peer que possui um chunk específico.
  * 
  * A estrutura `ChunkLocationInfo` guarda os dados essenciais para localizar um peer que possui um chunk específico,
- * como endereço IP, porta de comunicação e a velocidade de transferência oferecida. Esses dados são usados 
+ * como endereço IP, porta UDP de comunicação e a velocidade de transferência em bytes/segundo oferecida. Esses dados são usados 
  * para otimizar o download dos chunks.
  */
 struct ChunkLocationInfo {
     std::string ip;          ///< Endereço IP do peer que possui o chunk.
-    int port;                ///< Porta do peer que possui o chunk.
-    int transfer_speed;      ///< Velocidade de transferência do peer.
+    int port;                ///< Porta UDP do peer que possui o chunk.
+    int transfer_speed;      ///< Velocidade de transferência em bytes/segundo do peer.
 
     /**
      * @brief Construtor da estrutura ChunkLocationInfo.
@@ -28,8 +28,8 @@ struct ChunkLocationInfo {
      * usa valores padrão.
      * 
      * @param ip Endereço IP do peer que possui o chunk (padrão: string vazia).
-     * @param port Porta do peer que possui o chunk (padrão: 0).
-     * @param transfer_speed Velocidade de transferência do peer (padrão: 0).
+     * @param port Porta UDP do peer que possui o chunk (padrão: 0).
+     * @param transfer_speed Velocidade de transferência em bytes/segundo do peer (padrão: 0).
      */
     ChunkLocationInfo(const std::string& ip = "", int port = 0, int transfer_speed = 0)
         : ip(ip), port(port), transfer_speed(transfer_speed) {}
@@ -54,6 +54,10 @@ private:
     ///< A chave é o nome do arquivo (std::string).
     ///< O valor é um conjunto (std::set<int>) contendo os IDs dos chunks que o peer já possui para aquele arquivo.
 
+    std::unordered_map<std::string, int> file_chunks;
+    ///< Mapa que armazena o nome do arquivo que o peer quer buscar como chave
+    ///< e o número total de chunks que ele possui como valor.
+
     std::string directory;  
     ///< Diretório responsável pelo armazenamento dos arquivos do peer, incluindo o local onde novos chunks serão salvos.
 
@@ -62,7 +66,7 @@ private:
     ///< A chave é o nome do arquivo (std::string).
     ///< O valor é um vetor onde cada índice representa um chunk do arquivo.
     ///< Cada índice contém um vetor de `ChunkLocationInfo`, onde cada `ChunkLocationInfo` descreve um peer
-    ///< que possui o chunk, incluindo seu IP, porta e velocidade de transferência.
+    ///< que possui o chunk, incluindo seu IP, porta UDP e velocidade de transferência em bytes/segundo.
 
     std::unordered_map<std::string, std::vector<std::mutex>> chunk_location_info_mutex;
     ///< Mutex para garantir acesso seguro ao mapa de informações dos peers que possuem chunks de arquivos. Há um mutex para cada chunk.
@@ -87,6 +91,28 @@ public:
      * e verificação dos chunks disponíveis.
      */
     void loadLocalChunks();
+
+    /**
+     * @brief Carrega os metadados de um arquivo e retorna as informações.
+     * 
+     * Lê um arquivo de metadados específico e extrai o nome do arquivo, o número total de chunks
+     * e o valor inicial de TTL. Retorna essas informações como uma tupla.
+     * 
+     * @param metadata_file Nome do arquivo de metadados a ser lido.
+     * @return std::tuple<std::string, int, int> contendo o nome do arquivo, total de chunks e TTL inicial. Retorna {"", -1, -1} se ocorrer um erro ao abrir o arquivo.
+     */
+    std::tuple<std::string, int, int> loadMetadata(const std::string& metadata_file);
+
+    /**
+     * @brief Inicializa ou atualiza o número de chunks de um arquivo no mapa de arquivos do peer.
+     * 
+     * Armazena o nome do arquivo e o número total de chunks associados a ele no mapa `file_chunks`.
+     * Caso o arquivo já exista, atualiza o número de chunks.
+     * 
+     * @param file_name Nome do arquivo que o peer deseja buscar.
+     * @param total_chunks Número total de chunks que compõem o arquivo.
+     */
+    void initializeFileChunks(const std::string& file_name, int total_chunks);
 
     /**
      * @brief Verifica se possui um chunk específico de um arquivo.
@@ -131,11 +157,10 @@ public:
      * Essa função verifica se o peer já baixou todos os chunks de um arquivo específico.
      * Isso é útil para saber quando o download de um arquivo foi totalmente concluído.
      * 
-     * @param file_name Nome do arquivo.
-     * @param total_chunks Total de chunks do arquivo.
+     * @param file_name Nome do arquivo.uivo.
      * @return true se todos os chunks foram recebidos, false caso contrário.
      */
-    bool hasAllChunks(const std::string& file_name, int total_chunks);
+    bool hasAllChunks(const std::string& file_name);
 
     /**
      * @brief Retorna os chunks disponíveis para um arquivo específico.
@@ -152,12 +177,10 @@ public:
      * @brief Concatena todos os chunks para formar o arquivo completo.
      * 
      * Combina todos os chunks de um arquivo que foram baixados para formar o arquivo original.
-     * Essa função é chamada após todos os chunks terem sido recebidos.
      * 
      * @param file_name Nome do arquivo.
-     * @param total_chunks Total de chunks do arquivo.
      */
-    void assembleFile(const std::string& file_name, int total_chunks);
+    void assembleFile(const std::string& file_name);
 
     /**
      * @brief Inicializa a estrutura para armazenar informações sobre onde encontrar cada chunk.
@@ -167,9 +190,8 @@ public:
      * onde as informações dos peers que possuem esse chunk serão armazenadas.
      * 
      * @param file_name O nome do arquivo ao qual o chunk pertence.
-     * @param total_chunks O número total de chunks do arquivo que precisam ser inicializados.
      */
-    void initializeChunkLocationInfo(const std::string& file_name, int total_chunks);
+    void initializeChunkLocationInfo(const std::string& file_name);
 
     /**
      * @brief Inicializa o vetor de mutexes para cada chunk de um arquivo.
@@ -179,22 +201,21 @@ public:
      * com um mutex para cada chunk, garantindo que o acesso a cada chunk possa ser sincronizado.
      * 
      * @param file_name O nome do arquivo para o qual os mutexes dos chunks serão inicializados.
-     * @param total_chunks O número total de chunks do arquivo que precisam ser protegidos por mutexes.
      */
-    void initializeChunkMutexes(const std::string& file_name, int total_chunks);
+    void initializeChunkMutexes(const std::string& file_name);
 
     /**
      * @brief Armazena informações de chunks recebidos para um arquivo específico.
      * 
      * Insere as informações de um chunk recebido no mapa `chunk_location_info`.
-     * Essas informações incluem o IP, porta e velocidade de transferência do peer que possui o chunk.
+     * Essas informações incluem o IP, porta UDP e velocidade de transferência em bytes/segundo do peer que possui o chunk.
      * A função usa mutexes para garantir que múltiplas threads possam acessar o mapa com segurança.
      * 
      * @param file_name O nome do arquivo associado aos chunks.
      * @param chunk_ids Uma lista de IDs dos chunks que foram recebidos.
      * @param ip O endereço IP do peer que enviou a resposta.
-     * @param port A porta do peer que enviou a resposta.
-     * @param transfer_speed A velocidade de transferência do peer.
+     * @param port A porta UDP do peer que enviou a resposta.
+     * @param transfer_speed A velocidade de transferência em bytes/segundo do peer.
      */
     void storeChunkLocationInfo(const std::string& file_name, const std::vector<int>& chunk_ids, const std::string& ip, int port, int transfer_speed);
 
@@ -209,6 +230,17 @@ public:
      * @return Mapa onde a chave é o ip:port do peer e o valor é uma lista de chunks a serem baixados daquele peer.
      */
     std::unordered_map<std::string, std::vector<int>> selectPeersForChunkDownload(const std::string& file_name);
+
+    /**
+     * @brief Exibe uma mensagem de sucesso dentro de uma moldura colorida em arco-íris.
+     * 
+     * Essa função imprime uma mensagem personalizada emoldurada com cores do arco-íris
+     * no terminal. A moldura é composta por várias camadas coloridas e o texto central
+     * é exibido em branco.
+     * 
+     * @param file_name Nome do arquivo que o peer montou com sucesso.
+     */
+    void displaySuccessMessage(const std::string& file_name);
 };
 
 #endif // FILEMANAGER_H

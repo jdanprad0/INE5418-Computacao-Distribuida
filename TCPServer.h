@@ -101,7 +101,7 @@ public:
      * @return true Se a configuração foi bem-sucedida.
      * @return false Se houve um erro ao configurar o timeout.
      */
-    bool TCPServer::setSocketTimeout(int sockfd, int seconds);
+    bool setSocketTimeout(int sockfd, int seconds);
 };
 
 #endif // TCPSERVER_H

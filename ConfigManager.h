@@ -13,7 +13,7 @@
  * Esta classe fornece métodos estáticos para carregar a topologia da rede e as configurações
  * dos peers a partir de arquivos. A topologia é representada como um mapa que mapeia cada 
  * nodo a seus vizinhos, enquanto as configurações incluem informações como IP, porta UDP e
- * velocidade de transferência para cada peer.
+ * velocidade de transferência em bytes/segundo para cada peer.
  */
 class ConfigManager {
 public:
@@ -31,7 +31,7 @@ public:
      * @brief Carrega as configurações dos peers a partir do arquivo.
      * 
      * Este método lê um arquivo de configuração e retorna um mapa onde cada chave é o identificador 
-     * de um peer e o valor é uma tupla contendo o IP, porta UDP e velocidade de transferência desse peer.
+     * de um peer e o valor é uma tupla contendo o IP, porta UDP e velocidade de transferência em bytes/segundo desse peer.
      * 
      * @return Mapa com as configurações de cada peer.
      */
@@ -45,7 +45,7 @@ public:
      * e a porta dos vizinhos do nodo.
      * 
      * @param topology Mapa da topologia da rede.
-     * @param config Mapa de configuração dos peers (IP, porta, velocidade).
+     * @param config Mapa de configuração dos peers (IP, porta UDP, velocidade em bytes/segundo).
      * @return std::map<int, std::vector<std::tuple<std::string, int>>> Topologia detalhada com as informações dos nodos.
      */
     static std::map<int, std::vector<std::tuple<std::string, int>>> expandTopology(

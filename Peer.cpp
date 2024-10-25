@@ -38,32 +38,22 @@ void Peer::start() {
  * @brief Inicia a busca por um arquivo na rede.
  */
 void Peer::searchFile(const std::string& metadata_file) {
-    // Lê o arquivo de metadados
-    std::string file_path = "./src/" + metadata_file;
-    std::ifstream meta_file(file_path);
-    if (!meta_file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo de metadados." << std::endl;
-        return;
+    auto [file_name, total_chunks, initial_ttl] = file_manager.loadMetadata(metadata_file);
+
+    // Verifica se a leitura foi bem-sucedida
+    if (total_chunks != -1 && initial_ttl != -1) {
+       // nicializa a estrutura responsável por armazenar as informações de número total de chunks para um arquivo
+        file_manager.initializeFileChunks(file_name, total_chunks);
+
+        // Inicializa a estrutura responsável por armazenar informações de localização dos chunks
+        file_manager.initializeChunkLocationInfo(file_name);
+
+        // Inicializa os mutexes responsáveis por sincronizar o acesso a cada chunk do arquivo
+        file_manager.initializeChunkMutexes(file_name);
+
+        // Começa a descoberta dos chunks
+        discoverAndRequestChunks(file_name, total_chunks, initial_ttl);
     }
-
-    std::string file_name;
-    int total_chunks;
-    int initial_ttl;
-
-    // Lê os dados do arquivo de metadados
-    std::getline(meta_file, file_name);
-    meta_file >> total_chunks;
-    meta_file >> initial_ttl;
-    meta_file.close();
-
-    // Inicializa a estrutura responsável por armazenar informações de localização dos chunks
-    file_manager.initializeChunkLocationInfo(file_name, total_chunks);
-
-    // Inicializa os mutexes responsáveis por sincronizar o acesso a cada chunk do arquivo
-    file_manager.initializeChunkMutexes(file_name, total_chunks);
-
-    // Começa a descoberta dos chunks
-    discoverAndRequestChunks(file_name, total_chunks, initial_ttl);
 }
 
 /**

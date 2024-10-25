@@ -13,7 +13,7 @@ std::map<int, std::vector<int>> ConfigManager::loadTopology() {
 
     // Verifica se o arquivo foi aberto corretamente
     if (!file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo de topologia." << std::endl;
+        logMessage(LogType::ERROR, "Erro ao abrir o arquivo de topologia.");
         return topology; // Retorna um mapa vazio em caso de erro
     }
 
@@ -58,7 +58,7 @@ std::map<int, std::tuple<std::string, int, int>> ConfigManager::loadConfig() {
 
     // Verifica se o arquivo foi aberto corretamente
     if (!file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo de configuração." << std::endl;
+        logMessage(LogType::ERROR, "Erro ao abrir o arquivo de configuração.");
         return config; // Retorna um mapa vazio em caso de erro
     }
 

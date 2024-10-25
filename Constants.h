@@ -16,7 +16,7 @@ namespace Constants {
     const std::string YELLOW  = "\033[93m";         ///< Cor amarela.
     const std::string MAGENTA = "\033[95m";         ///< Cor magenta.
     const std::string BLUE    = "\033[94m";         ///< Cor azul.
-    const std::string CIANO   = "\033[96m";         ///< Cor ciano.
+    const std::string CYAN    = "\033[96m";         ///< Cor ciano.
     const std::string GRAY    = "\033[37m";         ///< Cor cinza claro.
     const std::string ORANGE  = "\033[38;5;208m";   ///< Cor laranja.
     const std::string PINK    = "\033[38;5;213m";   ///< Cor rosa 
@@ -27,7 +27,7 @@ namespace Constants {
     const int RESPONSE_TIMEOUT_SECONDS     = 10;    ///< Tempo limite para resposta em segundos.
     const int TCP_CONTROL_MESSAGE_MAX_SIZE = 1024;  ///< Tamanho máximo de da mensagem de controle.
     const int TCP_MAX_PENDING_CONNECTIONS  = 10;    ///< Número máximo de conexões pendentes na fila de escuta TCP.
-    const int TCP_TIMEOUT_SECONDS          = 15;    ///< Tempo limite para dar timeout em espera de recebimento de dados TCP e fechar o socket.
+    const int TCP_TIMEOUT_SECONDS          = 1024;    ///< Tempo limite para dar timeout em espera de recebimento de dados TCP e fechar o socket.
 }
 
 #endif // CONSTANTS_H

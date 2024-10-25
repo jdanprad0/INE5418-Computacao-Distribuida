@@ -28,7 +28,7 @@ void logMessage(LogType type, const std::string& message) {
                 std::cout << Constants::MAGENTA << "[DISCOVERY_SENT] " << message;
                 break;
             case LogType::RESPONSE_RECEIVED:
-                std::cout << Constants::CIANO << "[RESPONSE_RECEIVED] " << message;
+                std::cout << Constants::CYAN << "[RESPONSE_RECEIVED] " << message;
                 break;
             case LogType::RESPONSE_SENT:
                 std::cout << Constants::GRAY << "[RESPONSE_SENT] " << message;
