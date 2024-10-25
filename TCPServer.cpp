@@ -62,6 +62,10 @@ void TCPServer::run() {
  * @brief Recebe um chunk do cliente e o salva.
  */
 void TCPServer::receiveChunks(int client_sockfd) {
+    if (!setSocketTimeout(client_sockfd, Constants::TCP_TIMEOUT_SECONDS)) {
+        logMessage(LogType::INFO, "Não foi possível configurar o timeout no socket.");
+    }
+
     // Obtém o IP e porta do cliente
     auto [client_ip, client_port] = getClientAddressInfo(client_sockfd);
     
@@ -84,14 +88,17 @@ void TCPServer::receiveChunks(int client_sockfd) {
             // Recebe os dados
             control_message_size = recv(client_sockfd, control_message_buffer, Constants::TCP_CONTROL_MESSAGE_MAX_SIZE, 0);
 
-            // Verifica se houve erro ou o cliente fechou a conexão
-            if (control_message_size <= 0) {
-                if (control_message_size == 0) {
-                    logMessage(LogType::INFO, "Conexão fechada pelo cliente.");
+            // Verifica se houve erro, timeout ou o cliente fechou a conexão
+            if (control_message_size < 0) {
+                if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                    logMessage(LogType::INFO, "Timeout ao aguardar a mensagem de controle.");
+                    close(client_sockfd);
+                    return;
                 } else {
-                    perror("Erro ao receber dados via TCP");
+                    perror("Erro ao receber a mensagem de controle");
                 }
-                return; // Sai da função em caso de erro ou término da conexão
+            } else if (control_message_size == 0) {
+                logMessage(LogType::INFO, "Conexão fechada pelo cliente.");
             }
 
             // Adiciona os bytes recebidos à mensagem de controle
@@ -132,10 +139,17 @@ void TCPServer::receiveChunks(int client_sockfd) {
                 // Recebe os dados do chunk
                 chunk_bytes_received = recv(client_sockfd, chunk_temp_buffer.data(), transfer_speed, 0);
 
-                // Verifica se houve erro ao receber o chunk
-                if (chunk_bytes_received <= 0) {
-                    logMessage(LogType::ERROR, "Erro ao receber o chunk.");
-                    break;
+                // Verifica se houve erro, timeout ou o cliente fechou a conexão
+                if (chunk_bytes_received < 0) {
+                    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                        logMessage(LogType::INFO, "Timeout ao aguardar o chunk " + std::to_string(chunk_id) + ".");
+                        close(client_sockfd);
+                        return;
+                    } else {
+                        perror("Erro ao receber o chunk.");
+                    }
+                } else if (chunk_bytes_received == 0) {
+                    logMessage(LogType::INFO, "Conexão fechada pelo cliente.");
                 }
 
                 // Copia os dados recebidos para o buffer principal do chunk
@@ -309,4 +323,19 @@ std::tuple<std::string, int> TCPServer::getClientAddressInfo(int client_sockfd) 
         perror("Erro ao obter IP e porta do cliente");
         return std::make_tuple("Erro", -1);
     }
+}
+
+/**
+ * @brief Configura o timeout para operações de recebimento no socket.
+ */
+bool TCPServer::setSocketTimeout(int sockfd, int seconds) {
+    struct timeval timeout;
+    timeout.tv_sec = seconds;
+    timeout.tv_usec = 0;
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
+        perror("Erro ao configurar o timeout do socket");
+        return false;
+    }
+    return true;
 }

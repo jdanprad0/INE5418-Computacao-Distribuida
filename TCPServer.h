@@ -92,6 +92,16 @@ public:
      * @return std::tuple<std::string, int> Tupla contendo o endereço IP (string) e a porta (int).
      */
     std::tuple<std::string, int> getClientAddressInfo(int client_sockfd);
+
+    /**
+     * @brief Configura o timeout para operações de recebimento no socket.
+     * 
+     * @param sockfd Descritor do socket.
+     * @param seconds Número de segundos para o timeout.
+     * @return true Se a configuração foi bem-sucedida.
+     * @return false Se houve um erro ao configurar o timeout.
+     */
+    bool TCPServer::setSocketTimeout(int sockfd, int seconds);
 };
 
 #endif // TCPSERVER_H
