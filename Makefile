@@ -16,13 +16,13 @@ HEADERS = Constants.h Utils.h ConfigManager.h FileManager.h Peer.h TCPServer.h U
 # Nome do executável
 TARGET = p2p
 
-# Converte os arquivos .cpp para .o adicionando-os na pasta build
+# Converte os arquivos .cpp para .o adicionando-os na pasta .build
 OBJ = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SRC))
 
 # Regra padrão para construir o executável
 all: $(OBJDIR) $(TARGET)
 
-# Regra para criar o diretório build, caso ele não exista
+# Regra para criar o diretório .build, caso ele não exista
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
@@ -30,7 +30,7 @@ $(OBJDIR):
 $(TARGET): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJ)
 
-# Regra para compilar os arquivos .cpp em arquivos .o na pasta build
+# Regra para compilar os arquivos .cpp em arquivos .o na pasta .build
 $(OBJDIR)/%.o: %.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 

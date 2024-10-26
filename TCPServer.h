@@ -5,6 +5,7 @@
 #include "Utils.h"
 #include <string>
 
+
 /**
  * @brief Definição da struct PeerInfo.
  * 
@@ -18,6 +19,7 @@ struct PeerInfo {
     PeerInfo(const std::string& ip, int port) : ip(ip), port(port) {}
 };
 
+
 /**
  * @brief Classe responsável pela transferência de chunks via TCP.
  * 
@@ -30,7 +32,7 @@ private:
     const std::string ip;                                   ///< Endereço IP do peer.
     const int port;                                         ///< Porta TCP para transferência.
     const int peer_id;                                      ///< Identificador único (ID) do peer.
-    const int transfer_speed;                               ///< Capacidade de transferência.
+    const int transfer_speed;                               ///< Capacidade de transferência em bytes por segundo.
     int server_sockfd;                                      ///< Socket TCP para aceitar conexões.
     FileManager& file_manager;                              ///< Referência ao gerenciador de arquivos.
 
@@ -39,27 +41,30 @@ public:
      * @brief Construtor da classe TCPServer.
      * 
      * Inicializa um servidor TCP com as informações do peer, incluindo o endereço IP,
-     * porta, capacidade de transferência e uma referência ao gerenciador de arquivos.
+     * porta TCP, capacidade de transferência em bytes por segundo e uma referência ao
+     * gerenciador de arquivos.
      * 
      * @param ip Endereço IP do peer.
      * @param port Porta TCP para transferência.
      * @param peer_id ID do peer na rede P2P.
-     * @param transfer_speed Capacidade de transferência.
+     * @param transfer_speed Capacidade de transferência em bytes por segundo.
      * @param file_manager Referência ao gerenciador de arquivos para acessar os chunks disponíveis.
      */
     TCPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager);
+
 
     /**
      * @brief Inicia o servidor TCP para aceitar conexões.
      * 
      * Este método cria um socket TCP e aguarda conexões de peers que desejam
-     * transferir chunks. As transferências são gerenciadas em threads separadas
-     * para permitir múltiplas transferências simultâneas.
+     * transferir chunks. As transferências para cada conexão são gerenciadas
+     * em threads separadas para permitir múltiplas transferências simultâneas.
      */
     void run();
 
+
     /**
-     * @brief Recebe um chunk enviado por um peer.
+     * @brief Recebe chunks enviados por um peer e ao receber todos, monta o arquivo final.
      * 
      * Este método recebe dados de um chunk de um cliente que está conectado ao servidor.
      * Ele armazena o chunk no diretório designado do peer.
@@ -68,12 +73,13 @@ public:
      */
     void receiveChunks(int client_sockfd);
 
+
     /**
-     * @brief Transfere um ou mais chunks para o peer solicitante.
+     * @brief Transfere chunks para o peer solicitante.
      * 
-     * Este método é responsável por enviar chunks específicos de um arquivo para um cliente que
-     * estabeleceu uma conexão com o servidor. Os chunks são recuperados do gerenciador de arquivos
-     * e enviados através do socket do cliente.
+     * Este método é responsável por enviar chunks específicos de um arquivo para um peer
+     * que solicitou via mensagem REQUEST. Os chunks são recuperados do gerenciador de
+     * arquivos e então enviados.
      * 
      * @param file_name Nome do arquivo cujos chunks estão sendo solicitados.
      * @param chunks Lista com os IDs dos chunks que devem ser transferidos.
@@ -81,15 +87,16 @@ public:
      */
     void sendChunks(const std::string& file_name, const std::vector<int>& chunks, const PeerInfo& destination_info);
 
+
     /**
-     * @brief Obtém o endereço IP e a porta do cliente conectado via socket.
+     * @brief Obtém o endereço IP e a porta TCP do cliente conectado via socket.
      * 
      * Esta função utiliza o descritor de socket do cliente para obter o endereço IP e a porta
-     * através de `getpeername()`. Ela retorna essas informações em uma tupla contendo o IP 
-     * como `std::string` e a porta como `int`.
+     * usada na comunicação através de `getpeername()`. Ela retorna essas informações em uma
+     * tupla contendo o IP como std::string e a porta TCP como int.
      * 
-     * @param client_sockfd Descritor de socket do cliente conectado.
-     * @return std::tuple<std::string, int> Tupla contendo o endereço IP (string) e a porta (int).
+     * @param client_sockfd Descritor do socket do cliente conectado.
+     * @return Tupla contendo o endereço IP (string) e a porta TCP (int).
      */
     std::tuple<std::string, int> getClientAddressInfo(int client_sockfd);
 };

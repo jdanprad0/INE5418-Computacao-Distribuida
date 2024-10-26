@@ -13,8 +13,9 @@ Peer::Peer(int id, const std::string& ip, int udp_port, int tcp_port, int transf
       tcp_server(ip, tcp_port, id, transfer_speed, file_manager),
       udp_server(ip, udp_port, id, transfer_speed, file_manager, tcp_server) {}
 
+
 /**
- * @brief Inicia os servidores UDP e TCP.
+ * @brief Inicia os servidores TCP e UDP.
  */
 void Peer::start() {
     // Inicializa os vizinhos na lista do servidor UDP
@@ -23,7 +24,7 @@ void Peer::start() {
     // Carrega os chunks locais do peer
     file_manager.loadLocalChunks();
 
-    // Inicia o servidor TCP em uma thread separada (descomentado para funcionalidade futura)
+    // Inicia o servidor TCP em uma thread separada
     std::thread tcp_thread(&TCPServer::run, &tcp_server);
 
     // Inicia o servidor UDP em uma thread separada
@@ -33,22 +34,24 @@ void Peer::start() {
     std::this_thread::sleep_for(std::chrono::seconds(Constants::SERVER_STARTUP_DELAY_SECONDS));
 
     // Entrada de um arquivo de metadados para iniciar a busca
-    searchFile("image.png.p2p");
+    searchFile(Constants::METADATAS_PATH);
 
-    // Espera a thread do servidor UDP (join), comentado para o servidor TCP
+    // Espera a finalização das thread do servidor TCP e UDP
     tcp_thread.join();
     udp_thread.join();
 }
 
+
 /**
- * @brief Inicia a busca por um arquivo na rede.
+ * @brief Inicia a busca por chunks de um arquivo na rede.
  */
-void Peer::searchFile(const std::string& metadata_file) {
-    auto [file_name, total_chunks, initial_ttl] = file_manager.loadMetadata(metadata_file);
+void Peer::searchFile(const std::string& metadata_path) {
+    // Carrega as informações do arquivo de metadados (nome do arquivo, número total de chunks, e TTL inicial)
+    auto [file_name, total_chunks, initial_ttl] = file_manager.loadMetadata(metadata_path);
 
     // Verifica se a leitura foi bem-sucedida
     if (total_chunks != -1 && initial_ttl != -1) {
-       // nicializa a estrutura responsável por armazenar as informações de número total de chunks para um arquivo
+       // Inicializa a estrutura responsável por armazenar as informações de número total de chunks para um arquivo
         file_manager.initializeFileChunks(file_name, total_chunks);
 
         // Inicializa a estrutura responsável por armazenar informações de localização dos chunks
@@ -58,6 +61,7 @@ void Peer::searchFile(const std::string& metadata_file) {
         discoverAndRequestChunks(file_name, total_chunks, initial_ttl);
     }
 }
+
 
 /**
  * @brief Inicia o processo de descoberta e solicitação de chunks.
@@ -81,7 +85,7 @@ void Peer::discoverAndRequestChunks(const std::string& file_name, int total_chun
         // Espera por respostas
         udp_server.waitForResponses(file_name);
     
-        // Envia solicitações de chunks aos peers que possuem partes do arquivo
+        // Envia solicitações de chunks aos peers selecionados
         udp_server.sendChunkRequestMessage(file_name);
     } else {
         logMessage(LogType::INFO, "O peer " + std::to_string(id) + " (" + ip + ":" + std::to_string(udp_port) + ") já possuí todos os chunks para " + file_name + ".");

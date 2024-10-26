@@ -1,8 +1,9 @@
+#include "ConfigManager.h"
 #include "Peer.h"
 #include "Utils.h"
-#include "ConfigManager.h"
 #include <iostream>
 #include <thread>
+
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -16,7 +17,7 @@ int main(int argc, char* argv[]) {
     // Configuração para flush automático após cada operação de saída
     std::cout.setf(std::ios::unitbuf);
 
-    // Identidica o Peer
+    // Identifica o Peer
     int peer_id = std::stoi(argv[1]);
     logMessage(LogType::INFO, "Peer " + std::to_string(peer_id) + " inicializado.");
     
@@ -36,7 +37,7 @@ int main(int argc, char* argv[]) {
     // Mata os processos nas portas que serão utilizadas para comunicação TCP e UDP
     system(("lsof -ti :" + std::to_string(tcp_port) + "," + std::to_string(udp_port) + " | xargs -r kill -9 2>/dev/null").c_str());
     // Pequeno atraso para esperar a liberação das portas
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
     
     // Carrega a topologia
     auto topology = ConfigManager::loadTopology();
