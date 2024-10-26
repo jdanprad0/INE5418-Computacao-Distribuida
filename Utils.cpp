@@ -19,7 +19,7 @@ std::string trim(const std::string& str) {
  */
 void logMessage(LogType type, const std::string& message) {
     {
-        std::lock_guard<std::mutex> lock(cout_mutex); // Bloqueia o acesso à saída do console
+        std::lock_guard<std::mutex> message_lock(cout_mutex); // Bloqueia o acesso à saída do console
         switch (type) {
             case LogType::DISCOVERY_RECEIVED:
                 std::cout << Constants::YELLOW << "[DISCOVERY_RECEIVED] " << message;

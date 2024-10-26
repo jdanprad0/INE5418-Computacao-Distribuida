@@ -60,10 +60,18 @@ void Peer::discoverAndRequestChunks(const std::string& file_name, int total_chun
     // Monta um PeerInfo para o peer original que está enviando a solicitação
     PeerInfo original_sender_info(ip, udp_port);
 
-    // Envia a mensagem de descoberta de chunks via UDP
-    bool send_message = udp_server.sendChunkDiscoveryMessage(file_name, total_chunks, initial_ttl, original_sender_info, true);
-    
-    if (send_message) {
+    // Inicializa como verdadeiro a variável que indica que é permitido processar respostas
+    // das mensagens de descoberta de chunks para o arquivo file_name
+    udp_server.initializeProcessingActive(file_name);
+
+    // Tenta montar o arquivo com os chunks disponíveis
+    bool assembler = file_manager.assembleFile(file_name);
+
+    // Se não conseguir montar o arquivo, envia uma solicitação de descoberta e espera por respostas
+    if (!assembler) {
+        // Envia a mensagem de descoberta para seus vizinhos
+        udp_server.sendChunkDiscoveryMessage(file_name, total_chunks, initial_ttl, original_sender_info);
+
         // Espera por respostas
         udp_server.waitForResponses(file_name);
     

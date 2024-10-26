@@ -70,6 +70,11 @@ void UDPServer::run() {
     }
 }
 
+void UDPServer::initializeProcessingActive(std::string file_name) {
+    std::lock_guard<std::mutex> file_lock(processing_mutex);
+    processing_active_map[file_name] = true;
+}
+
 /**
  * @brief Processa uma mensagem recebida de outro peer.
  */
@@ -84,7 +89,7 @@ void UDPServer::processMessage(const std::string& message, const PeerInfo& direc
         {
             std::streampos pos_before_file_name = ss.tellg(); // Salva a posição antes de ler o file_name
             ss >> file_name;
-            std::lock_guard<std::mutex> lock_file(processing_mutex);
+            std::lock_guard<std::mutex> file_lock(processing_mutex);
             if (processing_active_map[file_name]) {
                 ss.clear(); // Limpa qualquer flag de erro no stream
                 ss.seekg(pos_before_file_name); // Volta para a posição antes de ler o file_name
@@ -211,18 +216,7 @@ void UDPServer::processChunkRequestMessage(std::stringstream& message, const Pee
 /**
  * @brief Envia uma mensagem de descoberta para todos os vizinhos.
  */
-bool UDPServer::sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool initial_discovery) {
-    if (initial_discovery) {
-        std::lock_guard<std::mutex> lock_file(processing_mutex);
-        processing_active_map[file_name] = true; // Marca como ativo
-
-        bool assembler = file_manager.assembleFile(file_name);
-
-        if (assembler) {
-            return false;
-        }
-    }
-
+void UDPServer::sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) {
     std::string message = buildChunkDiscoveryMessage(file_name, total_chunks, ttl, chunk_requester_info);
 
     for (const auto& [neighbor_ip, neighbor_port] : udpNeighbors) {
@@ -240,13 +234,12 @@ bool UDPServer::sendChunkDiscoveryMessage(const std::string& file_name, int tota
         // Professor pediu para dar um tempo quando for enviar as mensagens de descoberta
         std::this_thread::sleep_for(std::chrono::seconds(Constants::DISCOVERY_MESSAGE_INTERVAL_SECONDS));
     }
-    return true;
 }
 
 /**
  * @brief Envia uma resposta com os chunks disponíveis de um arquivo solicitado.
  */
-bool UDPServer::sendChunkResponseMessage(const std::string& file_name, const PeerInfo& chunk_requester_info) {
+void UDPServer::sendChunkResponseMessage(const std::string& file_name, const PeerInfo& chunk_requester_info) {
     std::vector<int> chunks_available = file_manager.getAvailableChunks(file_name);
 
     if (!chunks_available.empty()) {
@@ -257,7 +250,7 @@ bool UDPServer::sendChunkResponseMessage(const std::string& file_name, const Pee
 
         if (bytes_sent < 0) {
             perror("Erro ao enviar resposta UDP com chunks disponíveis.");
-            return false;
+            return;
         }
 
         std::stringstream chunks_ss;
@@ -268,11 +261,9 @@ bool UDPServer::sendChunkResponseMessage(const std::string& file_name, const Pee
         logMessage(LogType::RESPONSE_SENT,
                    "Enviada resposta para o Peer " + chunk_requester_info.ip + ":" + std::to_string(chunk_requester_info.port) +
                    " com chunks disponíveis do arquivo '" + file_name + "': " + chunks_ss.str());
-        return true;
     }
 
     logMessage(LogType::INFO, "Nenhum chunk disponível para o arquivo '" + file_name + "'");
-    return false;
 }
 
 /**
@@ -356,7 +347,7 @@ void UDPServer::waitForResponses(const std::string& file_name) {
     std::this_thread::sleep_for(std::chrono::seconds(Constants::RESPONSE_TIMEOUT_SECONDS)); // Aguarda o tempo de resposta
 
     {
-        std::lock_guard<std::mutex> lock_file(processing_mutex);
+        std::lock_guard<std::mutex> file_lock(processing_mutex);
         processing_active_map[file_name] = false; // Desativa o processamento para o file_name após o timeout
     }
 

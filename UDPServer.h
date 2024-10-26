@@ -68,6 +68,19 @@ public:
     void run();
 
     /**
+     * @brief Inicializa o recebimento de respostas para chunks de um arquivo específico.
+     * 
+     * Esta função configura o sistema para processar respostas de peers na rede P2P
+     * que possuem chunks do arquivo identificado por file_name. Ao ser chamada, indica
+     * que as respostas dos peers em detrimento as mensagens de descoberta devem ser
+     * processadas. Quando desativada, o sistema interrompe o processamento dessas
+     * respostas.
+     * 
+     * @param file_name O nome do arquivo para o qual as respostas dos peers serão processadas.
+     */
+    void initializeProcessingActive(std::string file_name);
+
+    /**
      * @brief Processa uma mensagem recebida de outro peer.
      * 
      * A mensagem recebida será analisada e processada em uma nova thread para 
@@ -125,9 +138,8 @@ public:
      * @param ttl Time-to-live para limitar o alcance do flooding.
      * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
      * @param initial_discovery Indica se é a mensagem de descoberta inicial.
-     * @return Retorna true se foi necessário enviar a mensagem e falso, do contrário.
      */
-    bool sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool initial_discovery = false);
+    void sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info);
     
     /**
      * @brief Envia uma resposta (RESPONSE) contendo os chunks disponíveis para um arquivo.
@@ -137,9 +149,8 @@ public:
      * 
      * @param file_name Nome do arquivo solicitado.
      * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
-     * @return Retorna true se possui chunks disponíveis e enviou a resposta, false caso contrário.
      */
-    bool sendChunkResponseMessage(const std::string& file_name, const PeerInfo& chunk_requester_info);
+    void sendChunkResponseMessage(const std::string& file_name, const PeerInfo& chunk_requester_info);
 
     /**
      * @brief Envia uma mensagem REQUEST para pedir chunks específicos de um arquivo a cada peer.

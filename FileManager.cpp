@@ -230,7 +230,7 @@ std::unordered_map<std::string, std::vector<int>> FileManager::selectPeersForChu
      std::vector<std::vector<ChunkLocationInfo>> chunks_with_peer_info;
 
     {
-        std::lock_guard lock(chunk_location_info_mutex[file_name]);
+        std::lock_guard file_lock(chunk_location_info_mutex[file_name]);
         chunks_with_peer_info = chunk_location_info.at(file_name);
     }
 
