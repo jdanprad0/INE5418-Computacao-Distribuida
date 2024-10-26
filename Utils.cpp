@@ -1,11 +1,12 @@
 #include "Utils.h"
-#include <regex>
 #include <mutex>
 #include <arpa/inet.h>
 #include <cstring>
 
-// Mutex para proteger a saída do console
+
+//< Mutex para proteger a saída do console
 std::mutex cout_mutex;
+
 
 /**
  * @brief Remove espaços em branco ao redor de uma string.
@@ -14,8 +15,9 @@ std::string trim(const std::string& str) {
     return std::regex_replace(str, std::regex("^\\s+|\\s+$"), "");
 }
 
+
 /**
- * @brief Função auxiliar para formatar e exibir mensagens de log de forma consistente, com cores.
+ * @brief Formata e exibe mensagens de log de forma consistente, com cores.
  */
 void logMessage(LogType type, const std::string& message) {
     {
@@ -61,6 +63,7 @@ void logMessage(LogType type, const std::string& message) {
         std::cout << Constants::RESET << std::endl; // Reseta a cor do texto e finaliza a linha
     }
 }
+
 
 /**
  * @brief Cria e configura uma estrutura sockaddr_in com base no IP e na porta fornecidos.
