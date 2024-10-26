@@ -84,7 +84,7 @@ void UDPServer::processMessage(const std::string& message, const PeerInfo& direc
         {
             std::streampos pos_before_file_name = ss.tellg(); // Salva a posição antes de ler o file_name
             ss >> file_name;
-            std::lock_guard<std::mutex> lock(processing_mutex);
+            std::lock_guard<std::mutex> lock_file(processing_mutex);
             if (processing_active_map[file_name]) {
                 ss.clear(); // Limpa qualquer flag de erro no stream
                 ss.seekg(pos_before_file_name); // Volta para a posição antes de ler o file_name
@@ -224,6 +224,9 @@ void UDPServer::sendChunkDiscoveryMessage(const std::string& file_name, int tota
                        "Mensagem de descoberta enviada para Peer " + neighbor_ip + ":" + std::to_string(neighbor_port) +
                        " -> " + message);
         }
+
+        // Professor pediu para dar um tempo quando for enviar as mensagens de descoberta
+        std::this_thread::sleep_for(std::chrono::seconds(Constants::DISCOVERY_MESSAGE_INTERVAL_SECONDS));
     }
 }
 

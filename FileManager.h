@@ -54,6 +54,9 @@ private:
     ///< A chave é o nome do arquivo (std::string).
     ///< O valor é um conjunto (std::set<int>) contendo os IDs dos chunks que o peer já possui para aquele arquivo.
 
+    std::map<std::string,std::mutex> local_chunks_mutex;
+    ///< Mutexes para proteger o acesso a local_chunks.
+
     std::unordered_map<std::string, int> file_chunks;
     ///< Mapa que armazena o nome do arquivo que o peer quer buscar como chave
     ///< e o número total de chunks que ele possui como valor.
@@ -68,8 +71,8 @@ private:
     ///< Cada índice contém um vetor de `ChunkLocationInfo`, onde cada `ChunkLocationInfo` descreve um peer
     ///< que possui o chunk, incluindo seu IP, porta UDP e velocidade de transferência em bytes/segundo.
 
-    std::unordered_map<std::string, std::vector<std::mutex>> chunk_location_info_mutex;
-    ///< Mutex para garantir acesso seguro ao mapa de informações dos peers que possuem chunks de arquivos. Há um mutex para cada chunk.
+    std::unordered_map<std::string, std::mutex> chunk_location_info_mutex;
+    ///< Mutex para garantir acesso seguro ao mapa de informações dos peers que possuem chunks de arquivos
 
 public:
     /**
@@ -194,15 +197,26 @@ public:
     void initializeChunkLocationInfo(const std::string& file_name);
 
     /**
-     * @brief Inicializa o vetor de mutexes para cada chunk de um arquivo.
+     * @brief Inicializa um mutex para o arquivo especificado.
      * 
-     * Esta função inicializa um vetor de `std::mutex` no `chunk_location_info_mutex` para cada chunk
-     * do arquivo especificado. O vetor de mutexes terá o tamanho igual ao número total de chunks,
-     * com um mutex para cada chunk, garantindo que o acesso a cada chunk possa ser sincronizado.
+     * Esta função inicializa um `std::mutex` no `chunk_location_info_mutex` para o arquivo especificado.
+     * O mutex será utilizado para sincronizar o acesso a localização dos chunks do arquivo, garantindo que o acesso
+     * seja controlado de forma segura e evitando conflitos de concorrência durante operações de inserção e leitura da localização.
      * 
-     * @param file_name O nome do arquivo para o qual os mutexes dos chunks serão inicializados.
+     * @param file_name O nome do arquivo para o qual o mutex será inicializado.
      */
-    void initializeChunkMutexes(const std::string& file_name);
+    void initializeChunkLocationInfoMutexByFilename(const std::string& file_name);
+
+    /**
+     * @brief Inicializa o mutex para controle de acesso ao mapa de chunks locais de um arquivo específico.
+     * 
+     * Esta função garante que cada arquivo file_name tenha seu próprio mutex no mapa de controle
+     * de chunks locais local_chunks. O mutex é utilizado para sincronizar o acesso aos chunks 
+     * locais do arquivo, evitando condições de corrida durante operações de leitura e escrita.
+     * 
+     * @param file_name O nome do arquivo para o qual o mutex de controle será inicializado ou atualizado.
+     */
+    void initializeLocalChunksMutexByFilename(const std::string& file_name);
 
     /**
      * @brief Armazena informações de chunks recebidos para um arquivo específico.
@@ -220,14 +234,17 @@ public:
     void storeChunkLocationInfo(const std::string& file_name, const std::vector<int>& chunk_ids, const std::string& ip, int port, int transfer_speed);
 
     /**
-     * @brief Seleciona os peers de onde os chunks serão baixados, mantendo a porta no valor.
+     * @brief Seleciona peers para o download de chunks com base na velocidade de transferência e balanceamento de carga.
      * 
-     * Esta função escolhe quais peers (baseados no IP) serão usados para baixar os chunks do arquivo
-     * especificado, e retorna um mapa onde a chave é o IP do peer e o valor é um par contendo a porta
-     * do peer e a lista de chunks que serão baixados daquele peer.
+     * Esta função distribui os chunks de um arquivo entre diferentes peers disponíveis, levando em consideração 
+     * a velocidade de transferência e a quantidade de chunks já atribuída a cada peer. O objetivo é minimizar o tempo total
+     * de download ao selecionar o peer mais rápido disponível para cada chunk, ajustando para evitar sobrecarga em um único peer.
      * 
-     * @param file_name O nome do arquivo cujos chunks serão baixados.
-     * @return Mapa onde a chave é o ip:port do peer e o valor é uma lista de chunks a serem baixados daquele peer.
+     * A função prioriza os peers com maior velocidade de transferência e, em caso de empate, atribui o chunk ao peer com menos
+     * chunks já alocados, garantindo uma distribuição equilibrada e eficiente. Essa abordagem é independente do tamanho real dos chunks.
+     * 
+     * @param file_name O nome do arquivo para o qual os chunks serão distribuídos entre os peers.
+     * @return Um mapa associando cada peer (identificado por "ip:port") a uma lista dos chunks que ele deve baixar.
      */
     std::unordered_map<std::string, std::vector<int>> selectPeersForChunkDownload(const std::string& file_name);
 

@@ -59,8 +59,10 @@ int main(int argc, char* argv[]) {
     // Inicia os servidores
     std::thread peer_thread(&Peer::start, &peer);
 
-    // Simula a entrada de um arquivo de metadados para buscar
-    std::this_thread::sleep_for(std::chrono::seconds(2)); // Aguarda a inicialização
+    // Espera para dar tempo de inicializar todos os servidores
+    std::this_thread::sleep_for(std::chrono::seconds(Constants::SERVER_STARTUP_DELAY_SECONDS));
+
+    // Entrada de um arquivo de metadados para buscar
     peer.searchFile("image.png.p2p");
 
     peer_thread.join();
