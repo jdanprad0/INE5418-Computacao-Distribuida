@@ -118,6 +118,17 @@ public:
     void initializeFileChunks(const std::string& file_name, int total_chunks);
 
     /**
+     * @brief Limpa as informações de localização dos chunks e remove o mutex associado a um arquivo específico.
+     * 
+     * Remove o file_name do mapa chunk_location_info e apaga os dados de localização de cada chunk,
+     * garantindo que a memória associada aos vetores internos seja liberada. Em seguida, remove o mutex 
+     * correspondente do mapa chunk_location_info_mutex, se existir.
+     * 
+     * @param file_name Nome do arquivo cujas informações de localização dos chunks devem ser limpas.
+     */
+    void clearChunkLocationInfo(const std::string& file_name);
+
+    /**
      * @brief Verifica se possui um chunk específico de um arquivo.
      * 
      * Essa função verifica se o peer já possui um chunk específico de um determinado arquivo

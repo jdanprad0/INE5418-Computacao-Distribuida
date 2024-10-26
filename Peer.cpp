@@ -29,6 +29,12 @@ void Peer::start() {
     // Inicia o servidor UDP em uma thread separada
     std::thread udp_thread(&UDPServer::run, &udp_server);
 
+    // Espera para dar tempo de inicializar todos os servidores dos outros peers
+    std::this_thread::sleep_for(std::chrono::seconds(Constants::SERVER_STARTUP_DELAY_SECONDS));
+
+    // Entrada de um arquivo de metadados para iniciar a busca
+    searchFile("image.png.p2p");
+
     // Espera a thread do servidor UDP (join), comentado para o servidor TCP
     tcp_thread.join();
     udp_thread.join();

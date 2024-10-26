@@ -17,7 +17,7 @@ TCPServer::TCPServer(const std::string& ip, int port, int peer_id, int transfer_
     : ip(ip), port(port), peer_id(peer_id), transfer_speed(transfer_speed), file_manager(file_manager) {
     
     // Cria um socket TCP para escuta
-    server_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    server_sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     
     // Estrutura para armazenar informações do meu endereço do socket
     struct sockaddr_in my_addr = createSockAddr(ip.c_str(), port);
@@ -62,10 +62,6 @@ void TCPServer::run() {
  * @brief Recebe um chunk do cliente e o salva.
  */
 void TCPServer::receiveChunks(int client_sockfd) {
-    if (!setSocketTimeout(client_sockfd, Constants::TCP_TIMEOUT_SECONDS)) {
-        logMessage(LogType::INFO, "Não foi possível configurar o timeout no socket.");
-    }
-
     // Obtém o IP e porta do cliente
     auto [client_ip, client_port] = getClientAddressInfo(client_sockfd);
     
@@ -81,20 +77,16 @@ void TCPServer::receiveChunks(int client_sockfd) {
         ssize_t control_message_size = 0;
 
         // Buffer para armazenar os dados da mensagem de controle
-        char control_message_buffer[Constants::TCP_CONTROL_MESSAGE_MAX_SIZE] = {0};
+        char control_message_buffer[Constants::CONTROL_MESSAGE_MAX_SIZE] = {0};
 
         // Recebe a mensagem de controle em pedaços
         do {
             // Recebe os dados
-            control_message_size = recv(client_sockfd, control_message_buffer, Constants::TCP_CONTROL_MESSAGE_MAX_SIZE, 0);
+            control_message_size = recv(client_sockfd, control_message_buffer, Constants::CONTROL_MESSAGE_MAX_SIZE, 0);
 
-            // Verifica se houve erro, timeout ou o cliente fechou a conexão
+            // Verifica se houve erro ou o cliente fechou a conexão
             if (control_message_size < 0) {
-                if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                    logMessage(LogType::INFO, "Timeout ao aguardar a mensagem de controle.");
-                } else {
-                    perror("Erro ao receber a mensagem de controle");
-                }
+                perror("Erro ao receber a mensagem de controle");
                 close(client_sockfd);
                 return;
             } else if (control_message_size == 0) {
@@ -108,10 +100,10 @@ void TCPServer::receiveChunks(int client_sockfd) {
                 control_message.append(control_message_buffer, control_message_size);
                 control_message_total_bytes_received += control_message_size;
             
-                logMessage(LogType::INFO, "Recebido " + std::to_string(control_message_size) + " bytes da mensagem de controle de " + client_ip + ":" + std::to_string(client_port) + " (" + std::to_string(control_message_total_bytes_received) + "/" + std::to_string(Constants::TCP_CONTROL_MESSAGE_MAX_SIZE) + " bytes).");
+                logMessage(LogType::INFO, "Recebido " + std::to_string(control_message_size) + " bytes da mensagem de controle de " + client_ip + ":" + std::to_string(client_port) + " (" + std::to_string(control_message_total_bytes_received) + "/" + std::to_string(Constants::CONTROL_MESSAGE_MAX_SIZE) + " bytes).");
             }
 
-        } while (control_message_total_bytes_received < Constants::TCP_CONTROL_MESSAGE_MAX_SIZE); // Continua recebendo até que a mensagem de controle esteja completa
+        } while (control_message_total_bytes_received < Constants::CONTROL_MESSAGE_MAX_SIZE); // Continua recebendo até que a mensagem de controle esteja completa
 
         logMessage(LogType::INFO, "Mensagem de controle '" + control_message + "' recebida de " + client_ip + ":" + std::to_string(client_port));
         
@@ -167,7 +159,7 @@ void TCPServer::receiveChunks(int client_sockfd) {
                     // Atualiza o total de bytes recebidos
                     chunk_total_bytes_received += chunk_bytes_received;
 
-                    logMessage(LogType::INFO, "Recebido " + std::to_string(chunk_bytes_received) + " bytes do chunk " + std::to_string(chunk_id) + " de " + client_ip + ":" + std::to_string(client_port) + " (" + std::to_string(chunk_total_bytes_received) + "/" + std::to_string(chunk_size) + " bytes).");
+                    logMessage(LogType::CHUNK_RECEIVED, "Recebido " + std::to_string(chunk_bytes_received) + " bytes do chunk " + std::to_string(chunk_id) + " de " + client_ip + ":" + std::to_string(client_port) + " (" + std::to_string(chunk_total_bytes_received) + "/" + std::to_string(chunk_size) + " bytes).");
                 }
             }
 
@@ -194,7 +186,7 @@ void TCPServer::receiveChunks(int client_sockfd) {
  */
 void TCPServer::sendChunks(const std::string& file_name, const std::vector<int>& chunks, const PeerInfo& destination_info) {
     // Cria um novo socket para a conexão
-    int client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    int client_sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (client_sockfd < 0) {
         perror("Erro ao criar socket.");
         return;
@@ -247,7 +239,7 @@ void TCPServer::sendChunks(const std::string& file_name, const std::vector<int>&
         std::string control_message = ss.str();
 
         // Define o buffer de controle com tamanho fixo e preenche com 0s
-        char control_message_buffer[Constants::TCP_CONTROL_MESSAGE_MAX_SIZE] = {0};
+        char control_message_buffer[Constants::CONTROL_MESSAGE_MAX_SIZE] = {0};
 
         // Copia a mensagem de controle para o buffer
         std::memcpy(control_message_buffer, control_message.c_str(), std::min(control_message.size(), sizeof(control_message_buffer) - 1));
@@ -264,12 +256,12 @@ void TCPServer::sendChunks(const std::string& file_name, const std::vector<int>&
         // Variável para armazenar o número de bytes enviado no send
         size_t bytes_sent = 0;
 
-        while (total_bytes_sent < Constants::TCP_CONTROL_MESSAGE_MAX_SIZE) {
+        while (total_bytes_sent < Constants::CONTROL_MESSAGE_MAX_SIZE) {
             bytes_to_send = 0;
             bytes_sent = 0;
 
             // Calcula quantos bytes enviar no próximo bloco
-            bytes_to_send = std::min(transfer_speed, Constants::TCP_CONTROL_MESSAGE_MAX_SIZE - static_cast<int>(total_bytes_sent));
+            bytes_to_send = std::min(transfer_speed, Constants::CONTROL_MESSAGE_MAX_SIZE - static_cast<int>(total_bytes_sent));
 
             // Envia o bloco atual da mensagem
             bytes_sent = send(client_sockfd, control_message_buffer + total_bytes_sent, bytes_to_send, 0);
@@ -282,7 +274,7 @@ void TCPServer::sendChunks(const std::string& file_name, const std::vector<int>&
 
             total_bytes_sent += bytes_sent;
 
-            logMessage(LogType::INFO, "Enviado " + std::to_string(bytes_sent) + " bytes da mensagem de controle para " + destination_info.ip + ":" + std::to_string(destination_info.port) + " (" + std::to_string(total_bytes_sent) + "/" + std::to_string(Constants::TCP_CONTROL_MESSAGE_MAX_SIZE) + " bytes).");
+            logMessage(LogType::INFO, "Enviado " + std::to_string(bytes_sent) + " bytes da mensagem de controle para " + destination_info.ip + ":" + std::to_string(destination_info.port) + " (" + std::to_string(total_bytes_sent) + "/" + std::to_string(Constants::CONTROL_MESSAGE_MAX_SIZE) + " bytes).");
 
             // Simula a velocidade de transferência (bytes/segundo)
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -326,7 +318,7 @@ void TCPServer::sendChunks(const std::string& file_name, const std::vector<int>&
  */
 std::tuple<std::string, int> TCPServer::getClientAddressInfo(int client_sockfd) {
     // Declara uma struct para armazenar o endereço do cliente
-    struct sockaddr_in client_addr;
+    struct sockaddr_in client_addr{};
     socklen_t addr_len = sizeof(client_addr);
 
     // Usa getpeername() para obter as informações do cliente conectado
@@ -347,19 +339,4 @@ std::tuple<std::string, int> TCPServer::getClientAddressInfo(int client_sockfd) 
         perror("Erro ao obter IP e porta do cliente");
         return std::make_tuple("Erro", -1);
     }
-}
-
-/**
- * @brief Configura o timeout para operações de recebimento no socket.
- */
-bool TCPServer::setSocketTimeout(int sockfd, int seconds) {
-    struct timeval timeout;
-    timeout.tv_sec = seconds;
-    timeout.tv_usec = 0;
-
-    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
-        perror("Erro ao configurar o timeout do socket");
-        return false;
-    }
-    return true;
 }

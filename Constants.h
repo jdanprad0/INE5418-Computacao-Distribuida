@@ -27,7 +27,7 @@ namespace Constants {
     const int DISCOVERY_MESSAGE_INTERVAL_SECONDS = 1;   ///< Tempo de espera em segundos antes de enviar uma mensagem de descoberta
     const int SERVER_STARTUP_DELAY_SECONDS       = 5;   ///< Tempo de espera em segundos para inicialização dos servidores
     const int RESPONSE_TIMEOUT_SECONDS           = 30;  ///< Tempo limite para resposta em segundos.
-    const int TCP_CONTROL_MESSAGE_MAX_SIZE       = 1024;///< Tamanho máximo de da mensagem de controle.
+    const int CONTROL_MESSAGE_MAX_SIZE           = 1024;///< Tamanho máximo de da mensagem de controle.
     const int TCP_MAX_PENDING_CONNECTIONS        = 10;  ///< Número máximo de conexões pendentes na fila de escuta TCP.
     const int TCP_TIMEOUT_SECONDS                = 10;  ///< Tempo limite para dar timeout em espera de recebimento de dados TCP e fechar o socket.
 }

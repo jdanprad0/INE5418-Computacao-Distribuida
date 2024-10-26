@@ -56,16 +56,8 @@ int main(int argc, char* argv[]) {
     // Cria o peer
     Peer peer(peer_id, ip, udp_port, tcp_port, speed, neighbors);
 
-    // Inicia os servidores
-    std::thread peer_thread(&Peer::start, &peer);
-
-    // Espera para dar tempo de inicializar todos os servidores
-    std::this_thread::sleep_for(std::chrono::seconds(Constants::SERVER_STARTUP_DELAY_SECONDS));
-
-    // Entrada de um arquivo de metadados para buscar
-    peer.searchFile("image.png.p2p");
-
-    peer_thread.join();
+    // Inicia o Peer
+    peer.start();
 
     return 0;
 }

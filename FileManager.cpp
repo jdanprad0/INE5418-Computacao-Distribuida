@@ -89,6 +89,28 @@ void FileManager::initializeChunkLocationInfo(const std::string& file_name) {
 }
 
 /**
+ * @brief Limpa as informações de localização dos chunks e remove o mutex associado a um arquivo específico.
+ */
+void FileManager::clearChunkLocationInfo(const std::string& file_name) {
+    // Verifica se o arquivo existe no map
+    auto it = chunk_location_info.find(file_name);
+    if (it != chunk_location_info.end()) {
+        // Limpa cada vetor de ChunkLocationInfo para garantir que a memória seja liberada
+        for (auto& chunk_info : it->second) {
+            chunk_info.clear();
+        }
+        // Apaga a entrada completa do map
+        chunk_location_info.erase(it);
+    }
+
+    // Remove o mutex associado ao file_name, se existir
+    auto mutex_it = chunk_location_info_mutex.find(file_name);
+    if (mutex_it != chunk_location_info_mutex.end()) {
+        chunk_location_info_mutex.erase(mutex_it);
+    }
+}
+
+/**
  * @brief Verifica se possui um chunk específico de um arquivo.
  */
 bool FileManager::hasChunk(const std::string& file_name, int chunk) {
@@ -189,6 +211,7 @@ bool FileManager::assembleFile(const std::string& file_name) {
 
         output_file.close();
         displaySuccessMessage(file_name);
+        clearChunkLocationInfo(file_name);
         return true;
     }
     return false;

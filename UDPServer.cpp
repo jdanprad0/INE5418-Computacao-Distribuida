@@ -21,13 +21,13 @@ UDPServer::UDPServer(const std::string& ip, int port, int peer_id, int transfer_
  */
 void UDPServer::initializeUDPSocket() {
     // Criação do socket UDP
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
         perror("Falha ao criar socket");
         exit(EXIT_FAILURE);
     }
 
     // Configuração do endereço para o bind
-    struct sockaddr_in addr;
+    struct sockaddr_in addr{};
     addr.sin_family = AF_INET;                  // Define o tipo de endereço como IPv4.
     addr.sin_addr.s_addr = htonl(INADDR_ANY);   // Configura para aceitar conexões de qualquer endereço IP.
     addr.sin_port = htons(port);                // Converte e define a porta no formato de rede.
@@ -45,7 +45,7 @@ void UDPServer::initializeUDPSocket() {
  * @brief Inicia o servidor UDP para receber mensagens.
  */
 void UDPServer::run() {
-    char buffer[1024];
+    char buffer[Constants::CONTROL_MESSAGE_MAX_SIZE];
     struct sockaddr_in sender_addr{};
     socklen_t addr_len = sizeof(sender_addr);
 
@@ -53,8 +53,8 @@ void UDPServer::run() {
 
     while (true) {
         // Recebe a mensagem UDP
-        ssize_t bytes_received = recvfrom(sockfd, buffer, sizeof(buffer), 0,
-                                          (struct sockaddr*)&sender_addr, &addr_len);
+        ssize_t bytes_received = recvfrom(sockfd, buffer, Constants::CONTROL_MESSAGE_MAX_SIZE,
+                                          MSG_WAITALL, (struct sockaddr*)&sender_addr, &addr_len);
         if (bytes_received > 0) {
             buffer[bytes_received] = '\0';
             std::string message(buffer);
