@@ -53,8 +53,8 @@ void UDPServer::run() {
 
     while (true) {
         // Recebe a mensagem UDP
-        ssize_t bytes_received = recvfrom(sockfd, buffer, Constants::CONTROL_MESSAGE_MAX_SIZE,
-                                          MSG_WAITALL, (struct sockaddr*)&sender_addr, &addr_len);
+        ssize_t bytes_received = recvfrom(sockfd, buffer, Constants::CONTROL_MESSAGE_MAX_SIZE, 0,
+                                 (struct sockaddr*)&sender_addr, &addr_len);
         if (bytes_received > 0) {
             buffer[bytes_received] = '\0';
             std::string message(buffer);
