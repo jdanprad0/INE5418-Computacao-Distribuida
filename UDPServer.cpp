@@ -261,9 +261,9 @@ void UDPServer::sendChunkResponseMessage(const std::string& file_name, const Pee
         logMessage(LogType::RESPONSE_SENT,
                    "Enviada resposta para o Peer " + chunk_requester_info.ip + ":" + std::to_string(chunk_requester_info.port) +
                    " com chunks disponíveis do arquivo '" + file_name + "': " + chunks_ss.str());
-    }
-
-    logMessage(LogType::INFO, "Nenhum chunk disponível para o arquivo '" + file_name + "'");
+    } else {
+        logMessage(LogType::INFO, "Nenhum chunk disponível para o arquivo '" + file_name + "'");
+    }    
 }
 
 /**
