@@ -182,8 +182,9 @@ public:
      * Combina todos os chunks de um arquivo que foram baixados para formar o arquivo original.
      * 
      * @param file_name Nome do arquivo.
+     * @return Verdadeiro se conseguiu criar o novo arquivo com base em todos os chunks ou falso, do contrário.
      */
-    void assembleFile(const std::string& file_name);
+    bool assembleFile(const std::string& file_name);
 
     /**
      * @brief Inicializa a estrutura para armazenar informações sobre onde encontrar cada chunk.
@@ -195,28 +196,6 @@ public:
      * @param file_name O nome do arquivo ao qual o chunk pertence.
      */
     void initializeChunkLocationInfo(const std::string& file_name);
-
-    /**
-     * @brief Inicializa um mutex para o arquivo especificado.
-     * 
-     * Esta função inicializa um `std::mutex` no `chunk_location_info_mutex` para o arquivo especificado.
-     * O mutex será utilizado para sincronizar o acesso a localização dos chunks do arquivo, garantindo que o acesso
-     * seja controlado de forma segura e evitando conflitos de concorrência durante operações de inserção e leitura da localização.
-     * 
-     * @param file_name O nome do arquivo para o qual o mutex será inicializado.
-     */
-    void initializeChunkLocationInfoMutexByFilename(const std::string& file_name);
-
-    /**
-     * @brief Inicializa o mutex para controle de acesso ao mapa de chunks locais de um arquivo específico.
-     * 
-     * Esta função garante que cada arquivo file_name tenha seu próprio mutex no mapa de controle
-     * de chunks locais local_chunks. O mutex é utilizado para sincronizar o acesso aos chunks 
-     * locais do arquivo, evitando condições de corrida durante operações de leitura e escrita.
-     * 
-     * @param file_name O nome do arquivo para o qual o mutex de controle será inicializado ou atualizado.
-     */
-    void initializeLocalChunksMutexByFilename(const std::string& file_name);
 
     /**
      * @brief Armazena informações de chunks recebidos para um arquivo específico.

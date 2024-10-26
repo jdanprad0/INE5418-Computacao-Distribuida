@@ -15,6 +15,7 @@ FileManager::FileManager(const std::string& peer_id) : peer_id(peer_id) {}
 void FileManager::loadLocalChunks() {
     // Setando o diretório dos arquivos
     directory = Constants::BASE_PATH + peer_id;
+    std::set<std::string> unique_file_names;
 
     namespace fs = std::filesystem;
 
@@ -32,23 +33,14 @@ void FileManager::loadLocalChunks() {
             int chunk_id = std::stoi(filename.substr(pos + 3));
             local_chunks[file_name].insert(chunk_id);
 
-            // Cria o mutex de controle de acesso ao local_chunk
-            // Só cria se ainda não existir
-            initializeLocalChunksMutexByFilename(file_name);
+             unique_file_names.insert(file_name);
         }
     }
-}
 
-/**
- * @brief Inicializa o mutex para controle de acesso ao mapa de chunks locais de um arquivo específico.
- */
-void FileManager::initializeLocalChunksMutexByFilename(const std::string& file_name) {
-    if (local_chunks_mutex.find(file_name) == local_chunks_mutex.end()) {
-        // Inicializa o mutex para o file_name se ainda não existir
-        local_chunks_mutex.emplace(file_name, std::mutex());
+    for (const auto& file_name : unique_file_names) {
+        local_chunks_mutex.try_emplace(file_name);
     }
 }
-
 
 std::tuple<std::string, int, int> FileManager::loadMetadata(const std::string& metadata_file) {
     // Caminho do arquivo de metadados
@@ -93,19 +85,7 @@ void FileManager::initializeChunkLocationInfo(const std::string& file_name) {
     }
 
     // Inicializa os mutexes responsáveis por sincronizar o acesso ao map da localização dos chunks de um arquivo
-    initializeChunkLocationInfoMutexByFilename(file_name);
-}
-
-/**
- * @brief Inicializa o vetor de mutexes para cada arquivo.
- */
-void FileManager::initializeChunkLocationInfoMutexByFilename(const std::string& file_name) {
-    int total_chunks = file_chunks[file_name];
-
-    if (chunk_location_info_mutex.find(file_name) == chunk_location_info_mutex.end()) {
-        // Inicializa o mutex para o file_name se ainda não existir
-        chunk_location_info_mutex.emplace(file_name, std::mutex());
-    }
+    chunk_location_info_mutex.try_emplace(file_name);
 }
 
 /**
@@ -185,7 +165,7 @@ std::vector<int> FileManager::getAvailableChunks(const std::string& file_name) {
 /**
  * @brief Concatena todos os chunks para formar o arquivo completo.
  */
-void FileManager::assembleFile(const std::string& file_name) {
+bool FileManager::assembleFile(const std::string& file_name) {
     bool has_all_chunks = hasAllChunks(file_name);
 
     if (has_all_chunks) {
@@ -200,7 +180,7 @@ void FileManager::assembleFile(const std::string& file_name) {
 
             if (!chunk_file.is_open()) {
                 logMessage(LogType::ERROR, "Erro ao abrir o chunk " + chunk_path);
-                return;
+                return false;
             }
 
             output_file << chunk_file.rdbuf();
@@ -209,7 +189,9 @@ void FileManager::assembleFile(const std::string& file_name) {
 
         output_file.close();
         displaySuccessMessage(file_name);
+        return true;
     }
+    return false;
 }
 
 /**
@@ -239,7 +221,6 @@ void FileManager::storeChunkLocationInfo(const std::string& file_name, const std
     }
 }
 
-
 /**
  * @brief Seleciona peers para o download de chunks com base na velocidade de transferência e balanceamento de carga.
  */
@@ -263,7 +244,10 @@ std::unordered_map<std::string, std::vector<int>> FileManager::selectPeersForChu
         if (!available_peers_for_chunk.empty()) {
             // Copia a lista de peers disponíveis e ordena pela velocidade de transferência (decrescente)
             auto sorted_peers_by_speed = available_peers_for_chunk;
-            std::sort(sorted_peers_by_speed.begin(), sorted_peers_by_speed.end(), compareByTransferSpeed);
+            std::sort(sorted_peers_by_speed.begin(), sorted_peers_by_speed.end(), 
+                [](const ChunkLocationInfo& a, const ChunkLocationInfo& b) {
+                    return a.transfer_speed > b.transfer_speed;
+                });
 
             // Inicializa o peer selecionado como o mais rápido e define a carga mínima como o número de chunks atribuídos a ele
             ChunkLocationInfo selected_peer = sorted_peers_by_speed[0];
@@ -289,14 +273,6 @@ std::unordered_map<std::string, std::vector<int>> FileManager::selectPeersForChu
     }
 
     return chunks_by_peer_map;
-}
-
-
-/**
- * @brief Compara dois peers com base na velocidade de transferência, em ordem decrescente.
- */
-bool compareByTransferSpeed(const ChunkLocationInfo& a, const ChunkLocationInfo& b) {
-    return a.transfer_speed > b.transfer_speed;
 }
 
 /**

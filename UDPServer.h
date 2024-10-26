@@ -124,8 +124,10 @@ public:
      * @param total_chunks Número total de chunks que compõem o arquivo.
      * @param ttl Time-to-live para limitar o alcance do flooding.
      * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
+     * @param initial_discovery Indica se é a mensagem de descoberta inicial.
+     * @return Retorna true se foi necessário enviar a mensagem e falso, do contrário.
      */
-    void sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info);
+    bool sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool initial_discovery = false);
     
     /**
      * @brief Envia uma resposta (RESPONSE) contendo os chunks disponíveis para um arquivo.
@@ -135,7 +137,7 @@ public:
      * 
      * @param file_name Nome do arquivo solicitado.
      * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
-     * @return Retorna true se possui chunks disponíveis, false caso contrário.
+     * @return Retorna true se possui chunks disponíveis e enviou a resposta, false caso contrário.
      */
     bool sendChunkResponseMessage(const std::string& file_name, const PeerInfo& chunk_requester_info);
 

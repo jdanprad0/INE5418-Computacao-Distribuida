@@ -61,11 +61,15 @@ void Peer::discoverAndRequestChunks(const std::string& file_name, int total_chun
     PeerInfo original_sender_info(ip, udp_port);
 
     // Envia a mensagem de descoberta de chunks via UDP
-    udp_server.sendChunkDiscoveryMessage(file_name, total_chunks, initial_ttl, original_sender_info);
+    bool send_message = udp_server.sendChunkDiscoveryMessage(file_name, total_chunks, initial_ttl, original_sender_info, true);
     
-    // Espera por respostas
-    udp_server.waitForResponses(file_name);
+    if (send_message) {
+        // Espera por respostas
+        udp_server.waitForResponses(file_name);
     
-    // Envia solicitações de chunks aos peers que possuem partes do arquivo
-    udp_server.sendChunkRequestMessage(file_name);
+        // Envia solicitações de chunks aos peers que possuem partes do arquivo
+        udp_server.sendChunkRequestMessage(file_name);
+    } else {
+        logMessage(LogType::INFO, "O peer " + std::to_string(id) + " (" + ip + ":" + std::to_string(udp_port) + ") já possuí todos os chunks para " + file_name + ".");
+    }
 }

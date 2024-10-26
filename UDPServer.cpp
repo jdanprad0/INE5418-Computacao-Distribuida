@@ -159,19 +159,20 @@ void UDPServer::processChunkResponseMessage(std::stringstream& message, const Pe
         }
     }
 
-    std::stringstream chunks_ss;
-    for (const int& chunk : chunks_received) {
-        chunks_ss << chunk << " ";
-    }
-
     if (chunks_received.size() > 0) {
+        std::stringstream chunks_ss;
+
+        for (const int& chunk : chunks_received) {
+            chunks_ss << chunk << " ";
+        }
+
         // Armazena as respostas recebidas no mapa
         file_manager.storeChunkLocationInfo(file_name, chunks_received, direct_sender_info.ip, direct_sender_info.port, transfer_speed);
-    }
 
-    logMessage(LogType::RESPONSE_RECEIVED,
+        logMessage(LogType::RESPONSE_RECEIVED,
                "Recebida resposta do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
                " para o arquivo '" + file_name + "'. Chunks disponíveis: " + chunks_ss.str());
+    }
 }
 
 /**
@@ -210,7 +211,18 @@ void UDPServer::processChunkRequestMessage(std::stringstream& message, const Pee
 /**
  * @brief Envia uma mensagem de descoberta para todos os vizinhos.
  */
-void UDPServer::sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) {
+bool UDPServer::sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info, bool initial_discovery) {
+    if (initial_discovery) {
+        std::lock_guard<std::mutex> lock_file(processing_mutex);
+        processing_active_map[file_name] = true; // Marca como ativo
+
+        bool assembler = file_manager.assembleFile(file_name);
+
+        if (assembler) {
+            return false;
+        }
+    }
+
     std::string message = buildChunkDiscoveryMessage(file_name, total_chunks, ttl, chunk_requester_info);
 
     for (const auto& [neighbor_ip, neighbor_port] : udpNeighbors) {
@@ -228,6 +240,7 @@ void UDPServer::sendChunkDiscoveryMessage(const std::string& file_name, int tota
         // Professor pediu para dar um tempo quando for enviar as mensagens de descoberta
         std::this_thread::sleep_for(std::chrono::seconds(Constants::DISCOVERY_MESSAGE_INTERVAL_SECONDS));
     }
+    return true;
 }
 
 /**
@@ -340,15 +353,10 @@ std::string UDPServer::buildChunkRequestMessage(const std::string& file_name, co
  * @brief Espera por um tempo determinado pelas respostas e então desativa o processamento de respostas.
  */
 void UDPServer::waitForResponses(const std::string& file_name) {
-    {
-        std::lock_guard<std::mutex> lock(processing_mutex);
-        processing_active_map[file_name] = true; // Marca como ativo antes de iniciar o timer
-    }
-
     std::this_thread::sleep_for(std::chrono::seconds(Constants::RESPONSE_TIMEOUT_SECONDS)); // Aguarda o tempo de resposta
 
     {
-        std::lock_guard<std::mutex> lock(processing_mutex);
+        std::lock_guard<std::mutex> lock_file(processing_mutex);
         processing_active_map[file_name] = false; // Desativa o processamento para o file_name após o timeout
     }
 
