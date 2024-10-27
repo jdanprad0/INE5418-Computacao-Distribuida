@@ -14,12 +14,12 @@
 #include <mutex>
 
 /**
- * @brief Classe responsável por gerenciar a comunicação UDP para descoberta de arquivos em uma rede P2P.
+ * @brief Classe responsável por gerenciar a comunicação UDP para descoberta de chunks de um arquivo em uma rede P2P.
  * 
  * Esta classe implementa as funcionalidades de envio e recebimento de mensagens UDP 
- * relacionadas à descoberta de arquivos, assim como o processamento dessas mensagens. 
- * Ela interage com a classe FileManager para verificar e enviar os chunks de arquivos 
- * que o peer possui, bem como para descobrir arquivos na rede.
+ * relacionadas à descoberta de chunks de um arquivo, assim como o processamento dessas mensagens. 
+ * Ela interage com a classe FileManager para verificar e enviar respostas sobre os chunks de arquivos 
+ * que o peer possui.
  */
 class UDPServer {
 private:
@@ -30,34 +30,27 @@ private:
     int sockfd;                                             ///< Descriptor do socket UDP utilizado para a comunicação.
     std::vector<std::tuple<std::string, int>> udpNeighbors; ///< Lista contendo os vizinhos diretos do peer (endereços IP e portas UDP).
     std::map<std::string, bool> processing_active_map;      ///< Mapa para controlar o estado de processamento de cada arquivo. Mapeia file_name para processing_active.
-    std::mutex processing_mutex;                            ///< Mutex para proteger o acesso ao mapa
-    FileManager& file_manager;                              ///< Referência ao gerenciador de arquivos (armazenamento e chunks).
+    std::mutex processing_mutex;                            ///< Mutex para proteger o acesso ao processing_active_map.
+    FileManager& file_manager;                              ///< Referência ao gerenciador de chunks de um arquivo.
     TCPServer& tcp_server;                                  ///< Referência ao servidor TCP.
 
 public:
     /**
      * @brief Construtor da classe UDPServer.
      * 
-     * Inicializa o servidor UDP com o endereço IP, a porta e o ID do peer, e 
-     * associa-o a um gerenciador de arquivos (`FileManager`), que é responsável por 
-     * armazenar e gerenciar os arquivos e seus chunks.
+     * Inicializa o servidor UDP com o endereço IP, a porta UDP e o ID do peer, e 
+     * associa-o a um gerenciador de arquivos FileManager, que é responsável por 
+     * armazenar e gerenciar os chunks de um arquivo.
      * 
      * @param ip Endereço IP do peer.
      * @param port Porta UDP usada para a comunicação.
-     * @param peer_id ID do peer na rede P2P.
-     * @param transfer_speed Velocidade de transferência de dados em bytes/segundo do peer na rede P2P.
+     * @param peer_id ID do peer.
+     * @param transfer_speed Velocidade de transferência de dados em bytes/segundo do peer.
      * @param file_manager Referência ao gerenciador de arquivos do peer.
      * @param tcp_server Referência ao servidor TCP do peer.
      */
     UDPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager, TCPServer& tcp_server);
 
-    /**
-     * @brief Função para criar e configurar o socket UDP.
-     * 
-     * Esta função cria um socket UDP, configura o endereço e vincula o socket à porta especificada.
-     * 
-     */
-    void initializeUDPSocket();
 
     /**
      * @brief Inicia o servidor UDP, permitindo que o peer receba e envie mensagens.
@@ -67,18 +60,141 @@ public:
      */
     void run();
 
+
+    /**
+     * @brief Função para criar e configurar o socket UDP.
+     * 
+     * Esta função cria um socket UDP, configura o endereço e vincula o socket à porta UDP do peer.
+     * 
+     */
+    void initializeUDPSocket();
+
+
     /**
      * @brief Inicializa o recebimento de respostas para chunks de um arquivo específico.
      * 
      * Esta função configura o sistema para processar respostas de peers na rede P2P
      * que possuem chunks do arquivo identificado por file_name. Ao ser chamada, indica
-     * que as respostas dos peers em detrimento as mensagens de descoberta devem ser
+     * que as respostas dos peers em detrimento às mensagens de descoberta devem ser
      * processadas. Quando desativada, o sistema interrompe o processamento dessas
      * respostas.
      * 
      * @param file_name O nome do arquivo para o qual as respostas dos peers serão processadas.
      */
     void initializeProcessingActive(std::string file_name);
+
+
+    /**
+     * @brief Função que envia uma mensagem UDP.
+     * 
+     * Esta função é responsável por enviar uma mensagem UDP para o peer especificado.
+     * 
+     * @param ip O endereço IP do peer para o qual a mensagem será enviada.
+     * @param port A porta UDP do peer para o qual a mensagem será enviada.
+     * @param message A mensagem que será enviada.
+     * @return O número de bytes enviados, ou indicador de erro.
+     */
+    ssize_t sendUDPMessage(const std::string& ip, int port, const std::string& message);
+
+
+    /**
+     * @brief Define os vizinhos para o peer atual.
+     * 
+     * Esta função é usada para configurar os peers vizinhos com quem este peer 
+     * pode se comunicar diretamente via UDP.
+     * 
+     * @param neighbors Vizinhos do peer (IP e Porta UDP).
+     */
+    void setUDPNeighbors(const std::vector<std::tuple<std::string, int>>& neighbors);
+
+
+    /**
+     * @brief Obtém o endereço IP e a porta UDP do peer a partir de uma estrutura sockaddr_in.
+     * 
+     * Esta função recebe a estrutura sockaddr_in e retorna uma
+     * tupla com contendo as informações do peer (IP e porta UDP).
+     * 
+     * @param sender_addr Estrutura sockaddr_in contendo as informações do peer.
+     * @return Tupla contendo o endereço IP (string) e a porta UDP (int).
+     */
+    std::tuple<std::string, int> getSenderAddressInfo(const sockaddr_in& sender_addr);
+
+
+    /**
+     * @brief Envia uma mensagem de descoberta (DISCOVERY) para todos os vizinhos.
+     * 
+     * Essa mensagem será usada para solicitar a localização de um arquivo específico na rede.
+     * 
+     * @param file_name Nome do arquivo que o peer deseja localizar.
+     * @param total_chunks Número total de chunks que compõem o arquivo.
+     * @param ttl Time-to-live para limitar o alcance do flooding.
+     * @param chunk_requester_info Informações sobre o peer que solicitou os chunks do arquivo, como seu endereço IP e porta UDP.
+     */
+    void sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info);
+    
+
+    /**
+     * @brief Envia uma resposta (RESPONSE) contendo os chunks disponíveis para um arquivo.
+     * 
+     * Após receber uma solicitação de descoberta, essa função envia uma resposta 
+     * para o peer solicitante informando quais chunks estão disponíveis.
+     * 
+     * @param file_name Nome do arquivo solicitado.
+     * @param chunk_requester_info Informações sobre o peer que solicitou os chunks do arquivo, como seu endereço IP e porta UDP.
+     */
+    void sendChunkResponseMessage(const std::string& file_name, const PeerInfo& chunk_requester_info);
+
+
+    /**
+     * @brief Envia uma mensagem (REQUEST) para pedir chunks específicos de um arquivo.
+     * 
+     * Esta função percorre o mapa gerenciado por FileManager que contém os peers selecionados
+     * para enviar cada chunk, e envia uma mensagem fazendo a solicitação a eles.
+     * 
+     * @param file_name O nome do arquivo cujos chunks estão sendo solicitados.
+     */
+    void sendChunkRequestMessage(const std::string& file_name);
+
+
+    /**
+     * @brief Monta a mensagem de descoberta (DISCOVERY) para envio.
+     * 
+     * Constrói uma string formatada contendo as informações da mensagem DISCOVERY que será enviada 
+     * aos vizinhos para a busca de um arquivo.
+     * 
+     * @param file_name Nome do arquivo associado aos chunks.
+     * @param total_chunks Número total de chunks do arquivo.
+     * @param ttl Time-to-live da mensagem DISCOVERY.
+     * @param chunk_requester_info Informações sobre o peer que solicitou os chunks do arquivo, como seu endereço IP e porta UDP.
+     * @return String contendo a mensagem DISCOVERY formatada.
+     */
+    std::string buildChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) const;
+
+
+    /**
+     * @brief Constrói uma mensagem de resposta (RESPONSE) contendo os chunks disponíveis.
+     * 
+     * Cria uma string formatada com as informações de quais chunks estão disponíveis 
+     * para o arquivo solicitado pelo peer.
+     * 
+     * @param file_name Nome do arquivo solicitado.
+     * @param chunks_available Vetor com os IDs dos chunks disponíveis.
+     * @return String contendo a mensagem RESPONSE formatada.
+     */
+    std::string buildChunkResponseMessage(const std::string& file_name, const std::vector<int>& chunks_available) const;
+
+
+    /**
+     * @brief Monta a mensagem (REQUEST) para chunks específicos de um arquivo.
+     * 
+     * Esta função cria a mensagem solicitando chunks a um peer.
+     * 
+     * @param file_name O nome do arquivo cujos chunks estão sendo solicitados.
+     * @param chunks Lista de IDs dos chunks que estão sendo solicitados.
+     * @return A string contendo a mensagem REQUEST montada.
+     */
+    std::string buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const;
+
 
     /**
      * @brief Processa uma mensagem recebida de outro peer.
@@ -90,6 +206,7 @@ public:
      * @param direct_sender_info Informações sobre o peer que enviou diretamente a mensagem, incluindo seu endereço IP e porta UDP.
      */
     void processMessage(const std::string& message, const PeerInfo& direct_sender_info);
+
 
     /**
      * @brief Processa uma mensagem de descoberta (DISCOVERY).
@@ -105,6 +222,7 @@ public:
      */
     void processChunkDiscoveryMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
 
+
     /**
      * @brief Processa uma mensagem de resposta (RESPONSE).
      * 
@@ -117,6 +235,7 @@ public:
      */
     void processChunkResponseMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
 
+
     /**
      * @brief Processa a requisição de chunks recebida de outro peer.
      * 
@@ -128,77 +247,6 @@ public:
      */
     void processChunkRequestMessage(std::stringstream& message, const PeerInfo& direct_sender_info);
 
-    /**
-     * @brief Envia uma mensagem de descoberta (DISCOVERY) para todos os vizinhos.
-     * 
-     * Essa mensagem será usada para solicitar a localização de um arquivo específico na rede.
-     * 
-     * @param file_name Nome do arquivo que o peer deseja localizar.
-     * @param total_chunks Número total de chunks que compõem o arquivo.
-     * @param ttl Time-to-live para limitar o alcance do flooding.
-     * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
-     * @param initial_discovery Indica se é a mensagem de descoberta inicial.
-     */
-    void sendChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info);
-    
-    /**
-     * @brief Envia uma resposta (RESPONSE) contendo os chunks disponíveis para um arquivo.
-     * 
-     * Após receber uma solicitação de descoberta, essa função envia uma resposta 
-     * para o peer solicitante informando quais chunks estão disponíveis.
-     * 
-     * @param file_name Nome do arquivo solicitado.
-     * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
-     */
-    void sendChunkResponseMessage(const std::string& file_name, const PeerInfo& chunk_requester_info);
-
-    /**
-     * @brief Envia uma mensagem REQUEST para pedir chunks específicos de um arquivo a cada peer.
-     * 
-     * Esta função percorre o mapa chunks_by_peer e, para cada peer, envia uma mensagem UDP
-     * no formato: "REQUEST file_name chunk1 chunk2 ... chunkn" para o endereço IP e porta do peer.
-     * 
-     * @param file_name O nome do arquivo cujos chunks estão sendo solicitados.
-     * @param chunks_by_peer Mapa que associa cada peer (IP) a um par contendo a porta e os chunks que eles possuem.
-     */
-    void sendChunkRequestMessage(const std::string& file_name);
-
-    /**
-     * @brief Monta a mensagem de descoberta (DISCOVERY) para envio.
-     * 
-     * Constrói uma string formatada contendo as informações da mensagem DISCOVERY que será enviada 
-     * aos vizinhos para a busca de um arquivo.
-     * 
-     * @param file_name Nome do arquivo a ser descoberto.
-     * @param total_chunks Número total de chunks do arquivo.
-     * @param ttl Time-to-live da mensagem DISCOVERY.
-     * @param chunk_requester_info Informações sobre o peer que solicitou os chuncks do arquivo, como seu endereço IP e porta UDP.
-     * @return String contendo a mensagem DISCOVERY formatada.
-     */
-    std::string buildChunkDiscoveryMessage(const std::string& file_name, int total_chunks, int ttl, const PeerInfo& chunk_requester_info) const;
-
-    /**
-     * @brief Constrói uma mensagem de resposta (RESPONSE) contendo os chunks disponíveis.
-     * 
-     * Cria uma string formatada com as informações de quais chunks estão disponíveis 
-     * para o arquivo solicitado pelo peer.
-     * 
-     * @param file_name Nome do arquivo solicitado.
-     * @param chunks_available Vetor com os IDs dos chunks disponíveis.
-     * @return String contendo a mensagem RESPONSE formatada.
-     */
-    std::string buildChunkResponseMessage(const std::string& file_name, const std::vector<int>& chunks_available) const;
-
-    /**
-     * @brief Monta a mensagem REQUEST para chunks específicos de um arquivo.
-     * 
-     * Esta função cria a mensagem REQUEST no formato "REQUEST file_name chunk1 chunk2 ...".
-     * 
-     * @param file_name O nome do arquivo cujos chunks estão sendo solicitados.
-     * @param chunks Lista de IDs dos chunks que estão sendo solicitados.
-     * @return A string contendo a mensagem REQUEST montada.
-     */
-    std::string buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const;
 
     /**
      * @brief Espera por um tempo determinado pelas respostas e então desativa o processamento de respostas.
@@ -206,39 +254,6 @@ public:
      * @param file_name Nome do arquivo para o qual as respostas estão sendo aguardadas.
      */
     void waitForResponses(const std::string& file_name);
-
-    /**
-     * @brief Função auxiliar que configura o endereço IP e porta e envia uma mensagem UDP.
-     * 
-     * Esta função configura o endereço (IP e porta) e envia uma mensagem UDP para o peer especificado.
-     * 
-     * @param ip O endereço IP do peer para o qual a mensagem será enviada.
-     * @param port A porta UDP do peer para o qual a mensagem será enviada.
-     * @param message A mensagem que será enviada.
-     * @return O número de bytes enviados, ou um valor negativo em caso de erro.
-     */
-    ssize_t sendUDPMessage(const std::string& ip, int port, const std::string& message);
-
-    /**
-     * @brief Define os vizinhos para o peer atual.
-     * 
-     * Esta função é usada para configurar os peers vizinhos com quem este peer 
-     * pode se comunicar diretamente via UDP.
-     * 
-     * @param neighbors Vizinhos do peer (IP e Porta).
-     */
-    void setUDPNeighbors(const std::vector<std::tuple<std::string, int>>& neighbors);
-
-    /**
-     * @brief Obtém o endereço IP e a porta do peer a partir de uma estrutura sockaddr_in.
-     * 
-     * Esta função recebe a estrutura `sockaddr_in` contendo as informações do peer (IP e porta)
-     * e retorna uma tupla contendo o endereço IP e a porta.
-     * 
-     * @param sender_addr Estrutura sockaddr_in contendo as informações do peer.
-     * @return std::tuple<std::string, int> Tupla contendo o endereço IP (string) e a porta (int).
-     */
-    std::tuple<std::string, int> getSenderAddressInfo(const sockaddr_in& sender_addr);
 };
 
 #endif // UDPSERVER_H
