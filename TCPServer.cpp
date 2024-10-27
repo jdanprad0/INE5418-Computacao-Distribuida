@@ -16,19 +16,21 @@
 TCPServer::TCPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager)
     : ip(ip), port(port), peer_id(peer_id), transfer_speed(transfer_speed), file_manager(file_manager) {
     
-    // Cria um socket TCP para escuta
+    // Cria um socket TCP IPv4 (SOCK_STREAM) especificando explicitamente o protocolo TCP (IPPROTO_TCP)
+    // Nota: SOCK_STREAM já indica o uso de TCP, mas IPPROTO_TCP é passado para maior clareza e compatibilidade
     server_sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     
-    // Estrutura para armazenar informações do meu endereço do socket
+    // Prepara uma estrutura sockaddr_in para armazenar o endereço IP e a porta
     struct sockaddr_in my_addr = createSockAddr(ip.c_str(), port);
 
-    // Faz o bind do socket à porta especificada
+    // Associa o socket à porta e endereço IP especificados em my_addr
     if (bind(server_sockfd, (struct sockaddr*)&my_addr, sizeof(my_addr)) < 0) {
         perror("Erro ao fazer bind no socket TCP");
         exit(EXIT_FAILURE);
     }
 
-    // Coloca o socket em modo de escuta
+    // Coloca o socket em modo de escuta para aceitar conexões de entrada
+    // Constants::TCP_MAX_PENDING_CONNECTIONS define o número máximo de conexões pendentes na fila de espera
     if (listen(server_sockfd, Constants::TCP_MAX_PENDING_CONNECTIONS) < 0) {
         perror("Erro ao escutar no socket TCP");
         exit(EXIT_FAILURE);

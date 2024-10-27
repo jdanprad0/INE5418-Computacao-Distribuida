@@ -4,7 +4,6 @@
 #include "FileManager.h"
 #include "TCPServer.h"
 #include "Utils.h"
-#include "Constants.h"
 #include <string>
 #include <map>
 #include <vector>
@@ -157,7 +156,7 @@ public:
 
 
     /**
-     * @brief Monta a mensagem de descoberta (DISCOVERY) para envio.
+     * @brief Monta a mensagem de descoberta (DISCOVERY) de um arquivo para envio.
      * 
      * Constrói uma string formatada contendo as informações da mensagem DISCOVERY que será enviada 
      * aos vizinhos para a busca de um arquivo.
@@ -172,7 +171,7 @@ public:
 
 
     /**
-     * @brief Constrói uma mensagem de resposta (RESPONSE) contendo os chunks disponíveis.
+     * @brief Monta a mensagem de resposta (RESPONSE) contendo os chunks disponíveis.
      * 
      * Cria uma string formatada com as informações de quais chunks estão disponíveis 
      * para o arquivo solicitado pelo peer.
@@ -185,7 +184,7 @@ public:
 
 
     /**
-     * @brief Monta a mensagem (REQUEST) para chunks específicos de um arquivo.
+     * @brief Monta a mensagem de requisição (REQUEST) para pedir chunks específicos de um arquivo.
      * 
      * Esta função cria a mensagem solicitando chunks a um peer.
      * 
@@ -209,7 +208,7 @@ public:
 
 
     /**
-     * @brief Processa uma mensagem de descoberta (DISCOVERY).
+     * @brief Processa uma mensagem de descoberta (DISCOVERY) recebida de outro peer.
      * 
      * Esta função é responsável por processar mensagens DISCOVERY, que são enviadas 
      * por peers que estão buscando um arquivo na rede. A função extrai as informações 
@@ -224,7 +223,7 @@ public:
 
 
     /**
-     * @brief Processa uma mensagem de resposta (RESPONSE).
+     * @brief Processa uma mensagem de resposta (RESPONSE) recebida de outro peer.
      * 
      * Esta função é responsável por processar as respostas recebidas após um peer enviar 
      * uma solicitação de descoberta de arquivo. Ela extrai as informações do peer que 
@@ -237,7 +236,7 @@ public:
 
 
     /**
-     * @brief Processa a requisição de chunks recebida de outro peer.
+     * @brief Processa uma mensagem de requisição (REQUEST) recebida de outro peer.
      * 
      * Este método analisa a mensagem de requisição de chunks e inicia a transferência
      * dos chunks solicitados usando o servidor TCP associado.
@@ -249,9 +248,9 @@ public:
 
 
     /**
-     * @brief Espera por um tempo determinado pelas respostas e então desativa o processamento de respostas.
+     * @brief Espera por um tempo determinado pelas respostas e então desativa o processamento de respostas para o arquivo.
      * 
-     * @param file_name Nome do arquivo para o qual as respostas estão sendo aguardadas.
+     * @param file_name Nome do arquivo para o qual as respostas serão aguardadas.
      */
     void waitForResponses(const std::string& file_name);
 };

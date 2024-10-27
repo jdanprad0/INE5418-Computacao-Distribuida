@@ -1,7 +1,6 @@
 #ifndef CONFIGMANAGER_H
 #define CONFIGMANAGER_H
 
-#include "Constants.h"
 #include "Utils.h"
 #include <map>
 #include <string>

@@ -5,6 +5,7 @@
 #include "FileManager.h"
 #include "TCPServer.h"
 #include "UDPServer.h"
+#include "Utils.h"
 #include <map>
 #include <string>
 #include <vector>
