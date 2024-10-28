@@ -284,7 +284,7 @@ void TCPServer::sendChunks(const std::string& file_name, const std::vector<int>&
             logMessage(LogType::INFO, "Enviado " + std::to_string(bytes_sent) + " bytes da mensagem de controle para " + destination_info.ip + ":" + std::to_string(destination_info.port) + " (" + std::to_string(total_bytes_sent) + "/" + std::to_string(Constants::CONTROL_MESSAGE_MAX_SIZE) + " bytes).");
 
             // Simula a velocidade de transferência (bytes/segundo)
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
         total_bytes_sent = 0;;

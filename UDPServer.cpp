@@ -153,7 +153,7 @@ void UDPServer::sendChunkDiscoveryMessage(const std::string& file_name, int tota
                        "Mensagem de descoberta enviada para Peer " + neighbor_ip + ":" + std::to_string(neighbor_port) +
                        " -> " + message);
         }
-
+        
         // Professor pediu para dar um tempo quando for enviar as mensagens de descoberta
         std::this_thread::sleep_for(std::chrono::seconds(Constants::DISCOVERY_MESSAGE_INTERVAL_SECONDS));
     }
@@ -331,7 +331,6 @@ void UDPServer::processChunkDiscoveryMessage(std::stringstream& message, const P
 
         // Propaga a mensagem para os vizinhos se o TTL for maior que zero
         if (ttl > 0) {
-            std::this_thread::sleep_for(std::chrono::seconds(1)); // Atraso de 1 segundo
             sendChunkDiscoveryMessage(file_name, total_chunks, ttl - 1, chunk_requester_info);
         }
     }

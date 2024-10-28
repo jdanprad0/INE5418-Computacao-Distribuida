@@ -36,8 +36,9 @@ int main(int argc, char* argv[]) {
 
     // Mata os processos nas portas que serão utilizadas para comunicação TCP e UDP
     system(("lsof -ti :" + std::to_string(tcp_port) + "," + std::to_string(udp_port) + " | xargs -r kill -9 2>/dev/null").c_str());
+    logMessage(LogType::ERROR, "Liberando porta TCP: " + std::to_string(tcp_port) + " e porta UDP: " + std::to_string(udp_port) + "...");
     // Pequeno atraso para esperar a liberação das portas
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(Constants::WAIT_TIME_FOR_PORTS_RELEASE_SECONDS));
     
     // Carrega a topologia
     auto topology = ConfigManager::loadTopology();
