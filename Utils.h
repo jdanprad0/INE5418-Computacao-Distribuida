@@ -43,6 +43,15 @@ std::string trim(const std::string& str);
  */
 void logMessage(LogType type, const std::string& message);
 
+/**
+ * @brief Exibe uma mensagem de sucesso.
+ * 
+ * Essa função imprime uma mensagem personalizada no terminal.
+ * 
+ * @param file_name Nome do arquivo que o peer montou com sucesso.
+ * @param peer_id Id do Peer que está imprimindo a mensagem de sucesso.
+ */
+void displaySuccessMessage(const std::string& file_name, const std::string& peer_id);
 
 /**
  * @brief Cria e configura uma estrutura sockaddr_in com base no IP e na porta fornecidos.

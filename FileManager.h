@@ -216,18 +216,6 @@ public:
 
 
     /**
-     * @brief Verifica se todos os chunks de um arquivo foram recebidos.
-     * 
-     * Essa função verifica se o peer já baixou todos os chunks de um arquivo específico.
-     * Isso é útil para saber quando o download de um arquivo foi totalmente concluído.
-     * 
-     * @param file_name Nome do arquivo.
-     * @return true se todos os chunks foram recebidos, false caso contrário.
-     */
-    bool hasAllChunks(const std::string& file_name);
-
-
-    /**
      * @brief Salva um chunk recebido no diretório do peer.
      * 
      * Salva os dados recebidos de um chunk no diretório designado do peer. O chunk é gravado
@@ -250,16 +238,6 @@ public:
      * @return true se conseguiu criar o novo arquivo com base em todos os chunks ou false, do contrário.
      */
     bool assembleFile(const std::string& file_name);
-
-
-    /**
-     * @brief Exibe uma mensagem de sucesso.
-     * 
-     * Essa função imprime uma mensagem personalizada no terminal.
-     * 
-     * @param file_name Nome do arquivo que o peer montou com sucesso.
-     */
-    void displaySuccessMessage(const std::string& file_name);
 };
 
 #endif // FILEMANAGER_H

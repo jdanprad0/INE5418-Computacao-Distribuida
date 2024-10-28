@@ -240,23 +240,12 @@ bool FileManager::hasChunk(const std::string& file_name, int chunk) {
 
 
 /**
- * @brief Verifica se todos os chunks de um arquivo foram recebidos.
- */
-bool FileManager::hasAllChunks(const std::string& file_name) {
-    int total_chunks = file_chunks[file_name];
-
-    // Bloqueia o mutex do arquivo uma vez até o final do escopo desse método
-    std::lock_guard<std::mutex> file_lock(local_chunks_mutex[file_name]);
-    auto result = local_chunks[file_name].size() == static_cast<size_t>(total_chunks);
-    
-    return result;
-}
-
-
-/**
  * @brief Salva um chunk recebido no diretório do peer.
  */
 void FileManager::saveChunk(const std::string& file_name, int chunk, const char* data, size_t size) {
+    // Bloqueia o mutex do arquivo uma vez até o final do escopo desse método
+    std::lock_guard<std::mutex> file_lock(local_chunks_mutex[file_name]);
+
     std::string path = getChunkPath(file_name, chunk);
 
     std::ofstream outfile(path, std::ios::binary);
@@ -271,9 +260,8 @@ void FileManager::saveChunk(const std::string& file_name, int chunk, const char*
     // Fecha o arquivo
     outfile.close();
 
-    // Bloqueia o mutex do arquivo uma vez até o final do escopo desse método
-    std::lock_guard<std::mutex> file_lock(local_chunks_mutex[file_name]);
     local_chunks[file_name].insert(chunk); // Armazena o chunk salvo na lista de chunks que possuo
+    assembleFile(file_name); // Tenta montar o arquivo
 }
 
 
@@ -281,7 +269,9 @@ void FileManager::saveChunk(const std::string& file_name, int chunk, const char*
  * @brief Concatena todos os chunks para formar o arquivo completo.
  */
 bool FileManager::assembleFile(const std::string& file_name) {
-    bool has_all_chunks = hasAllChunks(file_name);
+    // Sob o bloqueio utilizado em saveChunk
+    int total_chunks = file_chunks[file_name];
+    bool has_all_chunks = local_chunks[file_name].size() == static_cast<size_t>(total_chunks);
 
     if (has_all_chunks) {
         int total_chunks = file_chunks[file_name];
@@ -303,50 +293,9 @@ bool FileManager::assembleFile(const std::string& file_name) {
         }
 
         output_file.close();
-        displaySuccessMessage(file_name);
+        displaySuccessMessage(file_name, peer_id);
         clearChunkLocationInfo(file_name);
         return true;
     }
     return false;
-}
-
-
-/**
- * @brief Exibe uma mensagem de sucesso.
- */
-void FileManager::displaySuccessMessage(const std::string& file_name) {
-    // Definição das cores
-    std::string colors[] = {
-        Constants::RED,
-        Constants::YELLOW,
-        Constants::GREEN,
-        Constants::BLUE,
-        Constants::MAGENTA,
-        Constants::RED,
-    };
-
-    // Mensagem central em branco
-    std::string message = "Arquivo " + file_name + " montado com sucesso!";
-    int width = message.length() + 8;
-
-    // Exibe as bordas coloridas (superior)
-    for (int i = 0; i < 3; ++i) {
-        std::cout << colors[i] << std::string(width, '#') << Constants::RESET << "\n";
-    }
-
-    // Moldura interna (superior)
-    std::cout << colors[3] << "###" << colors[4] << std::string(width - 6, ' ') << colors[3] << "###" << Constants::RESET << "\n";
-
-    // Mensagem central em branco
-    std::cout << colors[3] << "### " << Constants::RESET << message << colors[3] << " ###" << Constants::RESET << "\n";
-
-    // Moldura interna (inferior)
-    std::cout << colors[3] << "###" << colors[4] << std::string(width - 6, ' ') << colors[3] << "###" << Constants::RESET << "\n";
-
-    // Exibe as bordas coloridas (inferior)
-    for (int i = 0; i < 3; ++i) {
-        std::cout << colors[i] << std::string(width, '#') << Constants::RESET << "\n";
-    }
-
-    std::cout << "\n";
 }

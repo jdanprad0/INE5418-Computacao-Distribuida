@@ -173,8 +173,6 @@ void TCPServer::receiveChunks(int client_sockfd) {
                 logMessage(LogType::ERROR, "Falha ao receber o chunk " + std::to_string(chunk_id) + " de " + client_ip + ":" + std::to_string(client_port) + ". Bytes esperados: " + std::to_string(chunk_size) + ", recebidos: " + std::to_string(chunk_total_bytes_received));
             }
         }
-
-        file_manager.assembleFile(file_name);
     }
 
     // Fecha o socket após terminar
