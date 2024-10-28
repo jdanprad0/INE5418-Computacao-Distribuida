@@ -13,8 +13,8 @@
 /**
  * @brief Construtor da classe UDPServer.
  */
-UDPServer::UDPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager, TCPServer& tcp_server)
-    : ip(ip), port(port), peer_id(peer_id), transfer_speed(transfer_speed), file_manager(file_manager), tcp_server(tcp_server) {}
+UDPServer::UDPServer(const std::string& ip, int port, int tcp_port, int peer_id, int transfer_speed, FileManager& file_manager, TCPServer& tcp_server)
+    : ip(ip), port(port), tcp_port(tcp_port), peer_id(peer_id), transfer_speed(transfer_speed), file_manager(file_manager), tcp_server(tcp_server) {}
 
 
 /**
@@ -257,7 +257,7 @@ std::string UDPServer::buildChunkResponseMessage(const std::string& file_name, c
  */
 std::string UDPServer::buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const {
     std::stringstream ss;
-    ss << "REQUEST " << file_name << " ";
+    ss << "REQUEST " << file_name << " " << tcp_port;
     
     for (const int& chunk : chunks) {
         ss << chunk << " ";
@@ -379,10 +379,10 @@ void UDPServer::processChunkResponseMessage(std::stringstream& message, const Pe
 void UDPServer::processChunkRequestMessage(std::stringstream& message, const PeerInfo& direct_sender_info) {
     std::string file_name;
     std::vector<int> requested_chunks;
-    int chunk_id;
+    int tcp_port, chunk_id;
 
-    // Extrai o nome do arquivo
-    message >> file_name;
+    // Extrai o nome do arquivo e porta TCP
+    message >> file_name >> tcp_port;
 
     // Extrai os IDs dos chunks solicitados
     while (message >> chunk_id) {
@@ -399,8 +399,7 @@ void UDPServer::processChunkRequestMessage(std::stringstream& message, const Pee
                "Recebida requisição de chunks do Peer " + direct_sender_info.ip + ":" + std::to_string(direct_sender_info.port) +
                " para o arquivo '" + file_name + "'. Chunks solicitados: " + chunks_str);
 
-    // Por convenção neste trabalho, a porta de recebimento de mensagens TCP = porta UDP + 1000
-    PeerInfo direct_sender_info_tcp = PeerInfo(direct_sender_info.ip, direct_sender_info.port + 1000);
+    PeerInfo direct_sender_info_tcp = PeerInfo(direct_sender_info.ip, tcp_port);
 
     // Envia os chunks via TCP
     tcp_server.sendChunks(file_name, requested_chunks, direct_sender_info_tcp);

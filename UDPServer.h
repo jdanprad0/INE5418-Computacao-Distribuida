@@ -24,6 +24,7 @@ class UDPServer {
 private:
     const std::string ip;                                   ///< Endereço IP do peer atual.
     const int port;                                         ///< Porta UDP que o peer está utilizando para a comunicação.
+    const int tcp_port;                                     ///< Porta TCP para enviar na mensagem de request.
     const int peer_id;                                      ///< Identificador único (ID) do peer.
     const int transfer_speed;                               ///< Velocidade de transferência de dados em bytes/segundo.
     int sockfd;                                             ///< Descriptor do socket UDP utilizado para a comunicação.
@@ -43,12 +44,13 @@ public:
      * 
      * @param ip Endereço IP do peer.
      * @param port Porta UDP usada para a comunicação.
+     * @param tcp_port Porta TCP para enviar na mensagem REQUEST requisitando chunks.
      * @param peer_id ID do peer.
      * @param transfer_speed Velocidade de transferência de dados em bytes/segundo do peer.
      * @param file_manager Referência ao gerenciador de arquivos do peer.
      * @param tcp_server Referência ao servidor TCP do peer.
      */
-    UDPServer(const std::string& ip, int port, int peer_id, int transfer_speed, FileManager& file_manager, TCPServer& tcp_server);
+    UDPServer(const std::string& ip, int port, int tcp_port, int peer_id, int transfer_speed, FileManager& file_manager, TCPServer& tcp_server);
 
 
     /**

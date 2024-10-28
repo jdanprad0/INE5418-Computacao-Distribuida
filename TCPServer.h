@@ -10,11 +10,11 @@
  * @brief Definição da struct PeerInfo.
  * 
  * Esta struct armazena as informações de um peer, especificamente seu endereço IP
- * e a porta UDP utilizada para comunicação.
+ * e a porta utilizada para comunicação.
  */
 struct PeerInfo {
     std::string ip;  ///< Endereço IP do peer.
-    int port;        ///< Porta UDP do peer.
+    int port;        ///< Porta do peer.
 
     PeerInfo(const std::string& ip, int port) : ip(ip), port(port) {}
 };
