@@ -257,7 +257,7 @@ std::string UDPServer::buildChunkResponseMessage(const std::string& file_name, c
  */
 std::string UDPServer::buildChunkRequestMessage(const std::string& file_name, const std::vector<int>& chunks) const {
     std::stringstream ss;
-    ss << "REQUEST " << file_name << " " << tcp_port;
+    ss << "REQUEST " << file_name << " " << tcp_port << " ";
     
     for (const int& chunk : chunks) {
         ss << chunk << " ";
