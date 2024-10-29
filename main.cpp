@@ -7,7 +7,7 @@
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
-        logMessage(LogType::ERROR, "Uso: " + std::string(argv[0]) + " <peer_id> <file_name_1> <file_name2> ...");
+        logMessage(LogType::ERROR, "Uso: " + std::string(argv[0]) + " <peer_id> <file_name_1> <file_name_2> ...");
         return 1;
     }
 
