@@ -56,8 +56,10 @@ public:
      * Ativa e inicia os servidores TCP e UDP, permitindo que o peer se comunique 
      * na rede P2P para descoberta e transferência de chunks. Dá início a descoberta
      * de chunks de um arquivo.
+     * 
+     * @param file_names Nomes dos arquivos que se deseja fazer a busca.
      */
-    void start();
+    void start(const std::vector<std::string>& file_names);
 
 
     /**
@@ -66,9 +68,9 @@ public:
      * Busca chunks de um arquivo específico na rede P2P baseado no arquivo de metadados (.p2p).
      * Utiliza o servidor UDP para descobrir peers que possuem os chunks do arquivo.
      * 
-     * @param metadata_path Caminho para o arquivo de metadados a ser lido. O nome do arquivo deve seguir o padrão <file_name.p2p>.
+     * @param file_name Nome do arquivo que se deseja fazer a busca.
      */
-    void searchFile(const std::string& metadata_file);
+    void searchFile(const std::string& file_name);
 
 
     /**

@@ -104,10 +104,10 @@ public:
      * Lê um arquivo de metadados específico e extrai o nome do arquivo, o número total de chunks
      * e o valor inicial de TTL. Retorna essas informações como uma tupla.
      * 
-     * @param metadata_path Caminho para o arquivo de metadados a ser lido. O nome do arquivo deve seguir o padrão <file_name.p2p>.
+     * @param file_name Nome do arquivo que se deseja fazer a busca para carregar os metadados.
      * @return Tupla contendo o nome do arquivo, total de chunks e TTL inicial. Retorna {"", -1, -1} se ocorrer um erro ao abrir o arquivo.
      */
-    std::tuple<std::string, int, int> loadMetadata(const std::string& metadata_file);
+    std::tuple<std::string, int, int> loadMetadata(const std::string& file_name);
 
 
     /**

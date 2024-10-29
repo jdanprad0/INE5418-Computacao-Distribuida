@@ -6,8 +6,8 @@
 
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        logMessage(LogType::ERROR, "Uso: " + std::string(argv[0]) + " <peer_id>");
+    if (argc < 3) {
+        logMessage(LogType::ERROR, "Uso: " + std::string(argv[0]) + " <peer_id> <file_name_1> <file_name2> ...");
         return 1;
     }
 
@@ -19,6 +19,13 @@ int main(int argc, char* argv[]) {
 
     // Identifica o Peer
     int peer_id = std::stoi(argv[1]);
+
+    // Pega o nome dos arquivos
+    std::vector<std::string> file_names;
+    for (int i = 2; i < argc; ++i) {
+        file_names.push_back(argv[i]);
+    }
+
     logMessage(LogType::INFO, "Peer " + std::to_string(peer_id) + " inicializado.");
     
     // Carrega as configurações
@@ -58,8 +65,8 @@ int main(int argc, char* argv[]) {
     // Cria o peer
     Peer peer(peer_id, ip, udp_port, tcp_port, speed, neighbors);
 
-    // Inicia o Peer
-    peer.start();
+    // Inicia o peer com os nomes dos arquivos que deseja buscar
+    peer.start(file_names);
 
     return 0;
 }

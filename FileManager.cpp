@@ -47,7 +47,8 @@ void FileManager::loadLocalChunks() {
 /**
  * @brief Carrega os metadados de um arquivo e retorna as informações.
  */ 
-std::tuple<std::string, int, int> FileManager::loadMetadata(const std::string& metadata_path) {
+std::tuple<std::string, int, int> FileManager::loadMetadata(const std::string& file_name) {
+    std::string metadata_path = Constants::BASE_PATH + file_name + ".p2p";
     std::ifstream meta_file(metadata_path);
     
     if (!meta_file.is_open()) {
@@ -55,17 +56,17 @@ std::tuple<std::string, int, int> FileManager::loadMetadata(const std::string& m
         return {"", -1, -1}; // Retorno padrão em caso de erro
     }
 
-    std::string file_name;
+    std::string file_name_returned;
     int total_chunks;
     int initial_ttl;
 
     // Lê os dados do arquivo de metadados
-    std::getline(meta_file, file_name);
+    std::getline(meta_file, file_name_returned);
     meta_file >> total_chunks;
     meta_file >> initial_ttl;
     meta_file.close();
 
-    return {file_name, total_chunks, initial_ttl}; // Retorna os valores em uma tupla
+    return {file_name_returned, total_chunks, initial_ttl}; // Retorna os valores em uma tupla
 }
 
 

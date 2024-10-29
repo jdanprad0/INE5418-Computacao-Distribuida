@@ -16,7 +16,7 @@ Peer::Peer(int id, const std::string& ip, int udp_port, int tcp_port, int transf
 /**
  * @brief Inicia os servidores TCP e UDP.
  */
-void Peer::start() {
+void Peer::start(const std::vector<std::string>& file_names) {
     // Inicializa os vizinhos na lista do servidor UDP
     udp_server.setUDPNeighbors(neighbors);
 
@@ -32,8 +32,20 @@ void Peer::start() {
     // Espera para dar tempo de inicializar todos os servidores dos outros peers
     std::this_thread::sleep_for(std::chrono::seconds(Constants::SERVER_STARTUP_DELAY_SECONDS));
 
-    // Entrada de um arquivo de metadados para iniciar a busca
-    searchFile(Constants::METADATAS_PATH);
+    // Threads para busca de cada arquivo
+    std::vector<std::thread> threads;
+
+    // Cria uma thread para cada file_name chamando Peer::searchFile e adiciona ao vetor
+    for (const auto& file_name : file_names) {
+        threads.emplace_back(&Peer::searchFile, this, file_name);
+    }
+
+    // Aguarda todas as threads de busca terminarem (join)
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
 
     // Espera a finalização das thread do servidor TCP e UDP
     tcp_thread.join();
@@ -44,20 +56,20 @@ void Peer::start() {
 /**
  * @brief Inicia a busca por chunks de um arquivo na rede.
  */
-void Peer::searchFile(const std::string& metadata_path) {
+void Peer::searchFile(const std::string& file_name) {
     // Carrega as informações do arquivo de metadados (nome do arquivo, número total de chunks, e TTL inicial)
-    auto [file_name, total_chunks, initial_ttl] = file_manager.loadMetadata(metadata_path);
+    auto [file_name_returned, total_chunks, initial_ttl] = file_manager.loadMetadata(file_name);
 
     // Verifica se a leitura foi bem-sucedida
     if (total_chunks != -1 && initial_ttl != -1) {
        // Inicializa a estrutura responsável por armazenar as informações de número total de chunks para um arquivo
-        file_manager.initializeFileChunks(file_name, total_chunks);
+        file_manager.initializeFileChunks(file_name_returned, total_chunks);
 
         // Inicializa a estrutura responsável por armazenar informações de localização dos chunks
-        file_manager.initializeChunkLocationInfo(file_name);
+        file_manager.initializeChunkLocationInfo(file_name_returned);
 
         // Começa a descoberta dos chunks
-        discoverAndRequestChunks(file_name, total_chunks, initial_ttl);
+        discoverAndRequestChunks(file_name_returned, total_chunks, initial_ttl);
     }
 }
 

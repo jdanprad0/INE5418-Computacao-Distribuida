@@ -9,7 +9,6 @@ namespace Constants {
     const std::string BASE_PATH = "./src/";                         ///< Caminho base onde os arquivos do projeto estão armazenados.
     const std::string CONFIG_PATH = BASE_PATH + "config.txt";       ///< Caminho para o arquivo de configuração.
     const std::string TOPOLOGY_PATH = BASE_PATH + "topologia.txt";  ///< Caminho para o arquivo de topologia.
-    const std::string METADATAS_PATH = BASE_PATH + "image.png.p2p"; ///< Caminho para o arquivo de metadados.
 
     // Cores para log
     const std::string RESET   = "\033[0m";                          ///< Resetar a cor do texto para branco.
