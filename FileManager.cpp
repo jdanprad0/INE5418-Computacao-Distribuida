@@ -52,7 +52,7 @@ std::tuple<std::string, int, int> FileManager::loadMetadata(const std::string& f
     std::ifstream meta_file(metadata_path);
     
     if (!meta_file.is_open()) {
-        logMessage(LogType::ERROR, "Erro ao abrir o arquivo de metadados.");
+        logMessage(LogType::ERROR, "Erro ao abrir o arquivo de metadados para " + file_name + ". Verifique se o arquivo de metadados " + file_name + ".p2p se encontra em " + Constants::BASE_PATH);
         return {"", -1, -1}; // Retorno padrão em caso de erro
     }
 
